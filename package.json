@@ -1,5 +1,5 @@
 {
-  "name": "my-app",
+  "name": "roomly",
   "private": true,
   "scripts": {
     "build": "turbo run build",
