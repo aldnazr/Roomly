@@ -23,11 +23,31 @@ db.transaction(() => {
       phone TEXT CHECK(phone IS NULL OR length(trim(phone)) > 0)
     ) STRICT;
 
+    CREATE TABLE IF NOT EXISTS roles (
+      id INTEGER PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE CHECK(length(trim(slug)) > 0),
+      name TEXT NOT NULL CHECK(length(trim(name)) > 0),
+      description TEXT NOT NULL CHECK(length(trim(description)) > 0)
+    ) STRICT;
+
+    CREATE TABLE IF NOT EXISTS permissions (
+      id INTEGER PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE CHECK(length(trim(slug)) > 0),
+      name TEXT NOT NULL CHECK(length(trim(name)) > 0),
+      description TEXT NOT NULL CHECK(length(trim(description)) > 0)
+    ) STRICT;
+
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE ON UPDATE RESTRICT,
+      permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE ON UPDATE RESTRICT,
+      PRIMARY KEY(role_id, permission_id)
+    ) STRICT, WITHOUT ROWID;
+
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL CHECK(length(trim(name)) > 0),
       email TEXT NOT NULL UNIQUE COLLATE NOCASE CHECK(length(trim(email)) > 0),
-      role TEXT NOT NULL DEFAULT 'receptionist' CHECK(role IN ('admin', 'receptionist'))
+      role TEXT NOT NULL DEFAULT 'guest' REFERENCES roles(slug) ON DELETE RESTRICT ON UPDATE CASCADE
     ) STRICT;
 
     CREATE TABLE IF NOT EXISTS rooms (

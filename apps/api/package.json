@@ -16,7 +16,8 @@
     "dev": "bun --watch src/index.ts",
     "build": "tsc",
     "start": "bun dist/index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "seed:roles": "bun src/seeders/roles.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",
