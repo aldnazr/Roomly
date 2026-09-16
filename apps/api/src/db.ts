@@ -1,13 +1,24 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "fs";
+import { dirname, resolve } from "path";
 
-mkdirSync("data", { recursive: true });
-const db = new Database("data/database.db", { create: true });
+export const databasePath = resolve(
+  process.env.DATABASE_PATH || "data/database.db",
+);
+mkdirSync(dirname(databasePath), { recursive: true });
+
+const db = new Database(databasePath, { create: true });
 db.run("PRAGMA journal_mode = WAL;");
 db.run("PRAGMA foreign_keys = ON;");
 
-db.transaction(() => {
-  db.run(`
+type Migration = { id: number; name: string; up: (db: Database) => void };
+
+const migrations: Migration[] = [
+  {
+    id: 1,
+    name: "initial_schema",
+    up: (db) => {
+      db.run(`
     CREATE TABLE IF NOT EXISTS room_types (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL UNIQUE CHECK(length(trim(name)) > 0),
@@ -166,6 +177,49 @@ db.transaction(() => {
       );
     END;
   `);
-})();
+    },
+  },
+  {
+    id: 2,
+    name: "users_add_password_hash",
+    up: (db) => {
+      const columns = db
+        .query<{ name: string }, []>("PRAGMA table_info(users)")
+        .all();
+      if (!columns.some((column) => column.name === "password_hash")) {
+        db.run("ALTER TABLE users ADD COLUMN password_hash TEXT");
+      }
+    },
+  },
+];
+
+export function migrate(database: Database = db): void {
+  database.run(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE CHECK(length(trim(name)) > 0),
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    ) STRICT;
+  `);
+
+  const applied = new Set(
+    database
+      .query<{ id: number }, []>("SELECT id FROM schema_migrations")
+      .all()
+      .map((row) => row.id),
+  );
+
+  for (const migration of migrations) {
+    if (applied.has(migration.id)) continue;
+    database.transaction(() => {
+      migration.up(database);
+      database
+        .prepare("INSERT INTO schema_migrations (id, name) VALUES (?, ?)")
+        .run(migration.id, migration.name);
+    })();
+  }
+}
+
+migrate();
 
 export default db;

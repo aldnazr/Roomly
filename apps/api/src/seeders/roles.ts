@@ -162,27 +162,31 @@ const insertRolePermission = db.prepare(`
     AND permissions.slug = ?
 `);
 
-const seedRoles = db.transaction(() => {
-  for (const permission of permissions) {
-    upsertPermission.run(
-      permission.slug,
-      permission.name,
-      permission.description,
-    );
-  }
-
-  for (const role of roles) {
-    upsertRole.run(role.slug, role.name, role.description);
-    deleteRolePermissions.run(role.slug);
-
-    for (const permissionSlug of role.permissions) {
-      insertRolePermission.run(role.slug, permissionSlug);
+export function seedRoles(): void {
+  db.transaction(() => {
+    for (const permission of permissions) {
+      upsertPermission.run(
+        permission.slug,
+        permission.name,
+        permission.description,
+      );
     }
-  }
-});
 
-seedRoles();
+    for (const role of roles) {
+      upsertRole.run(role.slug, role.name, role.description);
+      deleteRolePermissions.run(role.slug);
 
-console.log(
-  `Seeded ${roles.length} roles, ${permissions.length} permissions, and ${roles.reduce((total, role) => total + role.permissions.length, 0)} role permissions.`,
-);
+      for (const permissionSlug of role.permissions) {
+        insertRolePermission.run(role.slug, permissionSlug);
+      }
+    }
+  })();
+}
+
+if (import.meta.main) {
+  seedRoles();
+
+  console.log(
+    `Seeded ${roles.length} roles, ${permissions.length} permissions, and ${roles.reduce((total, role) => total + role.permissions.length, 0)} role permissions.`,
+  );
+}

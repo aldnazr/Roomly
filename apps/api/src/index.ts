@@ -1,14 +1,23 @@
-import express, {
-  type NextFunction,
-  type Request,
-  type Response,
-} from "express";
-import cors from "cors";
 import "dotenv/config";
-import db from "./db";
+import { requireJwtSecret } from "./config";
+import { createApp } from "./app";
+import "./db";
 
-const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT ? Number(process.env.PORT) : 4000;
+if (!Number.isInteger(port) || port < 0 || port > 65535) {
+  console.error(
+    `Invalid configuration: PORT "${process.env.PORT}" is not a valid port`,
+  );
+  process.exit(1);
+}
 
-app.use(cors());
-app.use(express.json());
+try {
+  requireJwtSecret();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+}
+
+createApp().listen(port, () => {
+  console.log(`API listening on http://localhost:${port}`);
+});

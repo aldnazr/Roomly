@@ -30,6 +30,11 @@ out/
 build
 dist
 
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
 
 # Debug
 npm-debug.log*
