@@ -2,7 +2,7 @@
 
 import { IconDoorEnter } from "@tabler/icons-react";
 import { type AxiosError } from "axios";
-import { type FormEvent, useRef } from "react";
+import { type SubmitEvent, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,9 +13,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { ApiError } from "@/types/api-error";
-import { useLogin } from "@/services/use-login";
+import { Input } from "@/components/ui/input"
+import { ApiError } from "@/types/api-error"
+import { useLogin } from "@/services/use-login"
+import Cookies from "js-cookie";
 
 function BrandMark() {
   return (
@@ -46,7 +47,7 @@ export default function LoginPage() {
 
   const { mutate, isPending, data, error } = useLogin()
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     mutate({
       email: emailRef.current?.value ?? "",
@@ -104,7 +105,6 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            {/* ponytail: login POST ke API; token disimpan di sessionStorage onSuccess */}
             <form onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
