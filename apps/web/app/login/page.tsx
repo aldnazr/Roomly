@@ -1,7 +1,6 @@
 'use client'
 
 import { IconDoorEnter } from "@tabler/icons-react";
-import { useMutation } from "@tanstack/react-query";
 import { type AxiosError } from "axios";
 import { type FormEvent, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,9 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { axiosInstance } from "@/lib/axios-instance";
-import { LoginResponse } from "@/types/auth/login-response";
 import { ApiError } from "@/types/api-error";
+import { useLogin } from "@/services/use-login";
 
 function BrandMark() {
   return (
@@ -46,18 +44,7 @@ export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
 
-  const { mutate, isPending, data, error } = useMutation<
-    LoginResponse,
-    AxiosError<ApiError>,
-    { email: string; password: string }
-  >({
-    mutationFn: (credentials) =>
-      axiosInstance.post<LoginResponse>('/api/auth/login', credentials).then((res) => res.data),
-    onSuccess: ({ data }) => {
-      // ponytail: token di sessionStorage; pindah ke httpOnly cookie saat ada refresh token
-      sessionStorage.setItem("roomly_access_token", data.accessToken)
-    },
-  })
+  const { mutate, isPending, data, error } = useLogin()
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
