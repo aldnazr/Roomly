@@ -16,16 +16,8 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { axiosInstance } from "@/lib/axios-instance";
-
-type LoginResponse = {
-  data: {
-    accessToken: string
-    expiresIn: number
-    user: { id: number; name: string; email: string; role: string }
-  }
-}
-
-type ApiError = { error?: { message?: string } }
+import { LoginResponse } from "@/types/auth/login-response";
+import { ApiError } from "@/types/api-error";
 
 function BrandMark() {
   return (
