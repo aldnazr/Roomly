@@ -26,7 +26,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={() => {
                 clearAuth();
-                router.refresh();
+                router.push("/login");
               }}
             >
               <IconDoor /> Logout
