@@ -1,6 +1,10 @@
-import type { Metadata } from "next"
-import { IconDoorEnter } from "@tabler/icons-react"
-import { Button } from "@/components/ui/button"
+'use client'
+
+import { IconDoorEnter } from "@tabler/icons-react";
+import { useMutation } from "@tanstack/react-query";
+import { type AxiosError } from "axios";
+import { type FormEvent, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,14 +12,20 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { axiosInstance } from "@/lib/axios-instance";
 
-export const metadata: Metadata = {
-  title: "Masuk | Roomly",
-  description: "Masuk ke akun Roomly Anda.",
+type LoginResponse = {
+  data: {
+    accessToken: string
+    expiresIn: number
+    user: { id: number; name: string; email: string; role: string }
+  }
 }
+
+type ApiError = { error?: { message?: string } }
 
 function BrandMark() {
   return (
@@ -30,7 +40,41 @@ function BrandMark() {
   )
 }
 
+function getErrorMessage(error: AxiosError<ApiError>) {
+  if (!error.response) {
+    return "Tidak dapat terhubung ke server. Coba lagi beberapa saat."
+  }
+  if (error.response.status === 401) {
+    return "Email atau kata sandi tidak sesuai."
+  }
+  return error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
+}
+
 export default function LoginPage() {
+  const emailRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
+
+  const { mutate, isPending, data, error } = useMutation<
+    LoginResponse,
+    AxiosError<ApiError>,
+    { email: string; password: string }
+  >({
+    mutationFn: (credentials) =>
+      axiosInstance.post<LoginResponse>('/api/auth/login', credentials).then((res) => res.data),
+    onSuccess: ({ data }) => {
+      // ponytail: token di sessionStorage; pindah ke httpOnly cookie saat ada refresh token
+      sessionStorage.setItem("roomly_access_token", data.accessToken)
+    },
+  })
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    mutate({
+      email: emailRef.current?.value ?? "",
+      password: passwordRef.current?.value ?? "",
+    })
+  }
+
   return (
     <main className="grid min-h-svh bg-muted/40 lg:grid-cols-[minmax(0,1.05fr)_minmax(28rem,0.95fr)]">
       <section className="relative hidden min-h-svh overflow-hidden bg-foreground p-10 text-background lg:flex lg:flex-col xl:p-14">
@@ -81,8 +125,8 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            {/* ponytail: auth backend belum tersedia; submit saat ini memvalidasi browser native lalu POST ke route sendiri */}
-            <form method="post">
+            {/* ponytail: login POST ke API; token disimpan di sessionStorage onSuccess */}
+            <form onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -93,6 +137,8 @@ export default function LoginPage() {
                     autoComplete="email"
                     placeholder="nama@email.com"
                     className="h-11"
+                    ref={emailRef}
+                    disabled={isPending}
                     required
                   />
                 </Field>
@@ -106,13 +152,27 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     placeholder="Masukkan kata sandi"
                     className="h-11"
+                    ref={passwordRef}
+                    disabled={isPending}
                     required
                   />
                 </Field>
 
+                {error && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {getErrorMessage(error)}
+                  </p>
+                )}
+
+                {data && (
+                  <p className="text-sm text-foreground" role="status">
+                    Selamat datang, {data.data.user.name}.
+                  </p>
+                )}
+
                 <Field>
-                  <Button type="submit" size="lg" className="w-full">
-                    Masuk
+                  <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+                    {isPending ? "Memproses..." : "Masuk"}
                     <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
                   </Button>
                 </Field>
