@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from "@/lib/api-endpoints";
 import { axiosInstance } from "@/lib/axios-instance";
 import { ApiError } from "@/types/api-error";
 import { LoginResponse } from "@/types/auth/login-response";
@@ -12,7 +13,7 @@ export function useLogin() {
   >({
     mutationFn: (credentials) =>
       axiosInstance
-        .post<LoginResponse>("/api/auth/login", credentials)
+        .post<LoginResponse>(API_ENDPOINTS.auth.login, credentials)
         .then((res) => res.data),
     onSuccess: ({ data }) => {
       // ponytail: token di sessionStorage; pindah ke httpOnly cookie saat ada refresh token
