@@ -6,16 +6,13 @@ import { LoginResponse } from "@/types/auth/login-response";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
+import { LoginRequest } from "@/types/auth/login-request";
 
 export function useLogin() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  return useMutation<
-    LoginResponse,
-    AxiosError<ApiError>,
-    { email: string; password: string }
-  >({
+  return useMutation<LoginResponse, AxiosError<ApiError>, LoginRequest>({
     mutationFn: (credentials) =>
       axiosInstance
         .post<LoginResponse>(API_ENDPOINTS.auth.login, credentials)

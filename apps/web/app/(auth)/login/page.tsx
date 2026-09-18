@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { IconDoorEnter } from "@tabler/icons-react";
 import { type AxiosError } from "axios";
@@ -13,10 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input"
-import { ApiError } from "@/types/api-error"
-import { useLogin } from "@/services/use-login"
-import Cookies from "js-cookie";
+import { Input } from "@/components/ui/input";
+import { ApiError } from "@/types/api-error";
+import { useLogin } from "@/services/use-login";
 
 function BrandMark() {
   return (
@@ -28,31 +27,33 @@ function BrandMark() {
         Roomly
       </span>
     </div>
-  )
+  );
 }
 
 function getErrorMessage(error: AxiosError<ApiError>) {
   if (!error.response) {
-    return "Tidak dapat terhubung ke server. Coba lagi beberapa saat."
+    return "Tidak dapat terhubung ke server. Coba lagi beberapa saat.";
   }
   if (error.response.status === 401) {
-    return "Email atau kata sandi tidak sesuai."
+    return "Email atau kata sandi tidak sesuai.";
   }
-  return error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
+  return (
+    error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
+  );
 }
 
 export default function LoginPage() {
-  const emailRef = useRef<HTMLInputElement>(null)
-  const passwordRef = useRef<HTMLInputElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
-  const { mutate, isPending, data, error } = useLogin()
+  const { mutate, isPending, data, error } = useLogin();
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
     mutate({
       email: emailRef.current?.value ?? "",
       password: passwordRef.current?.value ?? "",
-    })
+    });
   }
 
   return (
@@ -69,7 +70,8 @@ export default function LoginPage() {
               Temukan dan kelola reservasi hotel Anda.
             </h2>
             <p className="mt-6 max-w-md text-base leading-7 text-background/65">
-              Masuk untuk melihat pesanan kamar, riwayat menginap, dan penawaran terbaik di Roomly.
+              Masuk untuk melihat pesanan kamar, riwayat menginap, dan penawaran
+              terbaik di Roomly.
             </p>
           </div>
 
@@ -150,7 +152,12 @@ export default function LoginPage() {
                 )}
 
                 <Field>
-                  <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={isPending}
+                  >
                     {isPending ? "Memproses..." : "Masuk"}
                     <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
                   </Button>
@@ -171,5 +178,5 @@ export default function LoginPage() {
         </p>
       </section>
     </main>
-  )
+  );
 }
