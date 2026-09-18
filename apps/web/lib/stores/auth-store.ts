@@ -1,7 +1,7 @@
 import { User } from "@/types/user";
 import Cookies from "js-cookie";
 import { persist } from "zustand/middleware";
-import { create } from "zustand/react";
+import { create } from "zustand";
 
 export interface AuthStore {
   user: User | null;
