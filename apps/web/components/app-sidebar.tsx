@@ -2,7 +2,9 @@
 
 import {
   Sidebar,
+  SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -13,16 +15,18 @@ import { useRouter } from "next/navigation";
 
 export function AppSidebar() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="icon">
+      <SidebarContent>
+        <SidebarGroup />
+        <SidebarGroup />
+      </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <IconUser /> Username
-            </SidebarMenuButton>
             <SidebarMenuButton
               onClick={() => {
                 clearAuth();
