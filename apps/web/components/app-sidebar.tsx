@@ -12,6 +12,8 @@ import {
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { IconDoor, IconUser } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
+import { ModeToggle } from "./mode-toggle";
+import { NavUser } from "./nav-user";
 
 export function AppSidebar() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -25,18 +27,21 @@ export function AppSidebar() {
         <SidebarGroup />
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
+        <NavUser
+          user={user}
+          logout={() => {
+            clearAuth();
+            router.push("/login");
+          }}
+        />
+        {/* <SidebarMenuButton
               onClick={() => {
                 clearAuth();
                 router.push("/login");
               }}
             >
-              <IconDoor /> Logout
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+              <IconDoor /> Logout <ModeToggle />
+            </SidebarMenuButton> */}
       </SidebarFooter>
     </Sidebar>
   );
