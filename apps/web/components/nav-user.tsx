@@ -25,15 +25,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { User } from "@/types/user";
+import { useSession } from "next-auth/react";
 
 type NavUserProps = {
-  user: User | null;
+  user?: string | null;
   avatar?: string | null;
   logout: () => void;
 };
 
 export function NavUser({ user, avatar, logout }: NavUserProps) {
+  const { data } = useSession();
   const { isMobile } = useSidebar();
 
   return (
@@ -47,15 +48,20 @@ export function NavUser({ user, avatar, logout }: NavUserProps) {
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
                 <Avatar className="size-8 rounded-lg grayscale">
-                  <AvatarImage src={avatar ?? undefined} alt={user?.name} />
+                  <AvatarImage
+                    src={avatar ?? undefined}
+                    alt={data?.user.name ?? ""}
+                  />
                   <AvatarFallback>
                     <IconUser />
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user?.name}</span>
+                  <span className="truncate font-medium">
+                    {data?.user.name ?? ""}
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user?.email}
+                    {data?.user.email}
                   </span>
                 </div>
                 <IconDotsVertical className="ml-auto size-4" />
@@ -72,15 +78,20 @@ export function NavUser({ user, avatar, logout }: NavUserProps) {
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-8 rounded-lg grayscale">
-                    <AvatarImage src={avatar ?? undefined} alt={user?.name} />
+                    <AvatarImage
+                      src={avatar ?? undefined}
+                      alt={data?.user.name ?? ""}
+                    />
                     <AvatarFallback>
                       <IconUser className="size-4" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user?.name}</span>
+                    <span className="truncate font-medium">
+                      {data?.user.name ?? ""}
+                    </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {user?.email}
+                      {data?.user.email}
                     </span>
                   </div>
                 </div>

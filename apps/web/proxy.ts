@@ -1,19 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-export default function proxy(request: NextRequest) {
-  const isAuthenticated = request.cookies.get("roomly_access_token");
+import { auth } from "@/auth";
+
+// ponytail: guards routes by NextAuth session only. If a second cookie (e.g. a
+// legacy access token) ever needs to gate access too, add it here rather than
+// in a separate proxy.
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname.startsWith("/login");
+  const session = await auth();
+  const isAuthenticated = Boolean(session);
 
-  if (!isAuthenticated && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (isAuthPage) {
+    return isAuthenticated
+      ? NextResponse.redirect(new URL("/", request.url))
+      : NextResponse.next();
   }
 
-  if (isAuthenticated && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  return NextResponse.next();
+  return isAuthenticated
+    ? NextResponse.next()
+    : NextResponse.redirect(new URL("/login", request.url));
 }
 
 export const config = {

@@ -2,7 +2,7 @@
 
 import { IconDoorEnter } from "@tabler/icons-react";
 import { type AxiosError } from "axios";
-import { type SubmitEvent, useRef } from "react";
+import { type SubmitEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ApiError } from "@/types/api-error";
-import { useLogin } from "@/services/use-login";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 function BrandMark() {
   return (
@@ -30,30 +30,48 @@ function BrandMark() {
   );
 }
 
-function getErrorMessage(error: AxiosError<ApiError>) {
-  if (!error.response) {
-    return "Tidak dapat terhubung ke server. Coba lagi beberapa saat.";
-  }
-  if (error.response.status === 401) {
-    return "Email atau kata sandi tidak sesuai.";
-  }
-  return (
-    error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
-  );
-}
+// function getErrorMessage(error: AxiosError<ApiError>) {
+//   if (!error.response) {
+//     return "Tidak dapat terhubung ke server. Coba lagi beberapa saat.";
+//   }
+//   if (error.response.status === 401) {
+//     return "Email atau kata sandi tidak sesuai.";
+//   }
+//   return (
+//     error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
+//   );
+// }
 
 export default function LoginPage() {
+  const [error, setError] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
-  const { mutate, isPending, data, error } = useLogin();
-
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    mutate({
-      email: emailRef.current?.value ?? "",
-      password: passwordRef.current?.value ?? "",
+
+    let email = emailRef.current?.value;
+    let password = passwordRef.current?.value;
+
+    setError("");
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
     });
+
+    console.log(result);
+
+    if (result.error) {
+      setError("Email atau password salah");
+      console.log(result);
+
+      return;
+    }
+
+    router.push("/");
   }
 
   return (
@@ -119,7 +137,6 @@ export default function LoginPage() {
                     placeholder="nama@email.com"
                     className="h-11"
                     ref={emailRef}
-                    disabled={isPending}
                     required
                   />
                 </Field>
@@ -134,31 +151,19 @@ export default function LoginPage() {
                     placeholder="Masukkan kata sandi"
                     className="h-11"
                     ref={passwordRef}
-                    disabled={isPending}
                     required
                   />
                 </Field>
 
                 {error && (
                   <p className="text-sm text-destructive" role="alert">
-                    {getErrorMessage(error)}
-                  </p>
-                )}
-
-                {data && (
-                  <p className="text-sm text-foreground" role="status">
-                    Selamat datang, {data.data.user.name}.
+                    {error}
                   </p>
                 )}
 
                 <Field>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="w-full"
-                    disabled={isPending}
-                  >
-                    {isPending ? "Memproses..." : "Masuk"}
+                  <Button type="submit" size="lg" className="w-full">
+                    "Masuk"
                     <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
                   </Button>
                 </Field>
