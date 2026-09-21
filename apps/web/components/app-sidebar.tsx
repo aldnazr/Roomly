@@ -18,9 +18,8 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <NavUser
-          // user={user}
-          logout={() => {
-            signOut({ redirectTo: "/login" });
+          logout={async () => {
+            await signOut({ redirectTo: "/login" });
           }}
         />
         {/* <SidebarMenuButton
