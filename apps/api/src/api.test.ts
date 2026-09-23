@@ -256,3 +256,119 @@ describe("configuration", () => {
     expect(requireJwtSecret()).toBe(original);
   });
 });
+
+describe("roles API", () => {
+  const rolesUrl = (path = "") => `${baseUrl}/api/roles${path}`;
+  const get = (path: string, token: string) =>
+    fetch(rolesUrl(path), { headers: { Authorization: `Bearer ${token}` } });
+  const put = (path: string, body: unknown, token: string) =>
+    fetch(rolesUrl(path), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+  const viewPermissions = async (path: string, token: string) => {
+    const res = await get(path, token);
+    expect(res.status).toBe(200);
+    return ((await res.json()) as { data: { permissions: string[] } }).data.permissions;
+  };
+
+  let adminToken: string;
+  let guestToken: string;
+
+  beforeAll(async () => {
+    const admin = await login({ email: "admin@example.com", password: "rotated-password-456" });
+    adminToken = ((await admin.json()) as { data: { accessToken: string } }).data.accessToken;
+
+    db.prepare(
+      "INSERT INTO users (name, email, role, password_hash) VALUES ('Guest', 'guest@example.com', 'guest', ?)",
+    ).run(await Bun.password.hash("guest-password-123"));
+    const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
+    guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
+  });
+
+  test("returns 401 without or with an invalid token", async () => {
+    expect((await fetch(rolesUrl())).status).toBe(401);
+    expect((await get("/guest", "not-a-jwt")).status).toBe(401);
+  });
+
+  test("lists every seeded role with its permissions for any authenticated user", async () => {
+    const res = await get("/", guestToken);
+    expect(res.status).toBe(200);
+
+    const { data } = (await res.json()) as {
+      data: { slug: string; name: string; description: string; permissions: string[] }[];
+    };
+    expect(data.map((role) => role.slug)).toEqual(["guest", "staff", "manager", "admin"]);
+    expect(data[0]!.permissions).toEqual([
+      "rooms.browse",
+      "bookings.create",
+      "bookings.view_own",
+      "bookings.cancel_own",
+    ]);
+    const admin = data.find((role) => role.slug === "admin")!;
+    expect(admin.permissions).toContain("permissions.manage");
+  });
+
+  test("returns one role and 404 for an unknown slug", async () => {
+    const res = await get("/guest", guestToken);
+    expect(res.status).toBe(200);
+
+    const { data } = (await res.json()) as { data: { slug: string; description: string } };
+    expect(data.slug).toBe("guest");
+    expect(typeof data.description).toBe("string");
+
+    expect((await get("/missing", guestToken)).status).toBe(404);
+  });
+
+  test("returns 403 when the caller lacks permissions.manage", async () => {
+    const res = await put("/staff/permissions", { permissions: [] }, guestToken);
+    expect(res.status).toBe(403);
+  });
+
+  test("replaces the permission set and persists it", async () => {
+    const res = await put(
+      "/staff/permissions",
+      { permissions: ["rooms.browse", "bookings.view_all"] },
+      adminToken,
+    );
+    expect(res.status).toBe(200);
+
+    const { data } = (await res.json()) as { data: { slug: string; permissions: string[] } };
+    expect(data.slug).toBe("staff");
+    expect(data.permissions).toEqual(["rooms.browse", "bookings.view_all"]);
+    expect(await viewPermissions("/staff", adminToken)).toEqual([
+      "rooms.browse",
+      "bookings.view_all",
+    ]);
+  });
+
+  test("rejects unknown permission slugs without writing", async () => {
+    const res = await put(
+      "/staff/permissions",
+      { permissions: ["rooms.browse", "bogus.slug"] },
+      adminToken,
+    );
+    expect(res.status).toBe(400);
+    expect(await viewPermissions("/staff", adminToken)).toEqual([
+      "rooms.browse",
+      "bookings.view_all",
+    ]);
+  });
+
+  test("returns 404 for an unknown role and 400 for invalid bodies", async () => {
+    expect((await put("/missing/permissions", { permissions: [] }, adminToken)).status).toBe(404);
+    expect(
+      (await put("/staff/permissions", { permissions: ["rooms.browse", "rooms.browse"] }, adminToken))
+        .status,
+    ).toBe(400);
+    expect((await put("/staff/permissions", { permissions: "rooms.browse" }, adminToken)).status).toBe(400);
+    expect((await put("/staff/permissions", {}, adminToken)).status).toBe(400);
+  });
+
+  test("accepts an empty permission set", async () => {
+    const res = await put("/staff/permissions", { permissions: [] }, adminToken);
+    expect(res.status).toBe(200);
+    expect(await viewPermissions("/staff", adminToken)).toEqual([]);
+  });
+});
