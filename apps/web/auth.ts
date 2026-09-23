@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { axiosInstance } from "./lib/api/axios-instance";
-import { API_ENDPOINTS } from "./lib/api-endpoints";
+import { API_ENDPOINTS } from "./lib/api/api-endpoints";
 import { LoginResponse } from "./types/auth/login-response";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({

@@ -257,6 +257,52 @@ describe("configuration", () => {
   });
 });
 
+describe("permissions API", () => {
+  const url = () => `${baseUrl}/api/permissions`;
+  const get = (token?: string) =>
+    fetch(url(), token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+
+  let guestToken: string;
+
+  beforeAll(async () => {
+    const res = await login({ email: "admin@example.com", password: "rotated-password-456" });
+    guestToken = ((await res.json()) as { data: { accessToken: string } }).data.accessToken;
+  });
+
+  test("returns 401 without or with an invalid token", async () => {
+    expect((await get()).status).toBe(401);
+    expect((await get("not-a-jwt")).status).toBe(401);
+  });
+
+  test("lists every seeded permission in seed order for any authenticated user", async () => {
+    const res = await get(guestToken);
+    expect(res.status).toBe(200);
+
+    const { data } = (await res.json()) as {
+      data: { slug: string; name: string; description: string }[];
+    };
+    expect(data.map((permission) => permission.slug)).toEqual([
+      "rooms.browse",
+      "bookings.create",
+      "bookings.view_own",
+      "bookings.cancel_own",
+      "bookings.view_all",
+      "bookings.check_in",
+      "bookings.check_out",
+      "rooms.update_status",
+      "room_types.manage",
+      "pricing.manage",
+      "reports.occupancy.view",
+      "reports.revenue.view",
+      "refunds.approve",
+      "staff.manage",
+      "permissions.manage",
+    ]);
+    expect(data[0]!.name).toBe("Browse rooms");
+    expect(typeof data[0]!.description).toBe("string");
+  });
+});
+
 describe("roles API", () => {
   const rolesUrl = (path = "") => `${baseUrl}/api/roles${path}`;
   const get = (path: string, token: string) =>

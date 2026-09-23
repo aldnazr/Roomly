@@ -106,6 +106,22 @@ ends up half-updated. Any role can be edited, `admin` included: removing
 `permissions.manage` from a role revokes its own access to this endpoint.
 `bun run seed:roles` restores the seeded defaults.
 
+## Permissions
+
+`GET /api/permissions` lists every permission available in the system (the set
+seeded by `bun run seed:roles`). Any authenticated user may call it — no extra
+permission required — so role-management UIs can render slug/name/description.
+
+```bash
+curl -s http://localhost:4000/api/permissions -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": [ { "slug": "rooms.browse", "name": "Browse rooms", "description": "..." }, ... ] }`
+- `401` → missing, malformed, invalid, or expired token
+
+The list is ordered by seed order and reflects the current database contents;
+a permission added or renamed via the seeder shows up on the next request.
+
 ## Notes
 
 - Access tokens cannot be revoked before they expire.
