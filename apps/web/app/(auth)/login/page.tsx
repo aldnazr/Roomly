@@ -62,12 +62,8 @@ export default function LoginPage() {
       redirect: false,
     });
 
-    console.log(result);
-
     if (result.error) {
       setError("Email atau password salah");
-      console.log(result);
-
       return;
     }
 
