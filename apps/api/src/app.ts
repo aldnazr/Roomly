@@ -24,7 +24,14 @@ const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 export function createApp() {
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      // Wildcard `*` is illegal with credentialed requests; echo an explicit origin.
+      // ponytail: single origin only, add allow-list when a second frontend exists.
+      origin: process.env.CLIENT_ORIGIN ?? "http://localhost:3000",
+      credentials: true,
+    }),
+  );
   app.use(express.json());
 
   app.use("/api/auth", authRouter);
