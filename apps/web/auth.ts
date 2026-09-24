@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { axiosInstance } from "./lib/api/axios-instance";
 import { API_ENDPOINTS } from "./lib/api/api-endpoints";
-import { LoginResponse } from "./types/auths/login-response";
+import { authApi } from "./features/auth/auth-api";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -14,15 +14,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       async authorize(credentials) {
         try {
-          const response = await axiosInstance.post<LoginResponse>(
-            API_ENDPOINTS.auth.login,
-            {
-              email: credentials.email,
-              password: credentials.password,
-            },
-          );
+          const response = await authApi.login({
+            email: credentials.email as string,
+            password: credentials.password as string,
+          });
 
-          const { accessToken, expiresIn, user } = response.data.data;
+          const { accessToken, expiresIn, user } = response.data;
 
           return {
             id: String(user.id),
