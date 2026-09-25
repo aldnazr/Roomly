@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { roleApi } from "./role-api";
+import { permissionKeys } from "../permissions/use-permissions";
+import { permissionApi } from "../permissions/permission-api";
 
 export const roleKeys = {
   all: ["roles"] as const,
@@ -11,3 +13,20 @@ export const useRoles = () =>
     queryKey: roleKeys.list(),
     queryFn: roleApi.list,
   });
+
+export function useRoleDetail() {
+  const [permissionsQuery, rolesQuery] = useQueries({
+    queries: [
+      { queryKey: permissionKeys.list(), queryFn: permissionApi.list },
+      { queryKey: roleKeys.list(), queryFn: roleApi.list },
+    ],
+  });
+
+  return {
+    permissions: permissionsQuery.data,
+    roles: rolesQuery.data,
+    isLoading: permissionsQuery.isLoading || rolesQuery.isLoading,
+    isError: permissionsQuery.isError || rolesQuery.isError,
+    error: permissionsQuery.error ?? rolesQuery.error,
+  };
+}
