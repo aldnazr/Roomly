@@ -4,34 +4,31 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { IconDashboard, IconUsers } from "@tabler/icons-react";
+import { NavMain } from "./nav-main";
 
 export function AppSidebar() {
-  const router = useRouter();
+  const data = [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: IconDashboard,
+    },
+    {
+      title: "Role",
+      url: "/role",
+      icon: IconUsers,
+    },
+  ];
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarGroup />
-
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              variant={"outline"}
-              onClick={() => router.push("/role")}
-            >
-              Roles
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <SidebarGroup />
+        <NavMain items={data} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser
