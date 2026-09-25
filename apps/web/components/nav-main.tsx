@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export function NavMain({
   items,
@@ -31,7 +31,11 @@ export function NavMain({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 tooltip={item.title}
-                isActive={pathname === item.url}
+                isActive={
+                  item.url === "/" ?
+                    pathname === item.url
+                  : pathname.startsWith(item.url)
+                }
                 render={
                   <Link href={item.url}>
                     {item.icon && <item.icon />}

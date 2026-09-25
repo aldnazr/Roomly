@@ -9,27 +9,28 @@ import {
 import { useRoles } from "@/features/roles/use-roles";
 import { IconArrowNarrowRight, IconArrowRight } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 export default function RolePage() {
   const { isLoading, isError, error, data } = useRoles();
-  const roleList = data?.data;
+  const roles = data?.data;
 
   return (
     <>
-      {roleList &&
-        roleList.map((e) => (
+      {roles &&
+        roles.map((role) => (
           <Item
             variant={"outline"}
-            key={e.slug}
+            key={role.slug}
             render={
-              <a>
+              <Link href={`/role/${role.slug}`}>
                 <ItemContent>
-                  <ItemTitle>{e.name}</ItemTitle>
+                  <ItemTitle>{role.name}</ItemTitle>
                 </ItemContent>
                 <ItemActions>
                   <IconArrowRight className="size-4" />
                 </ItemActions>
-              </a>
+              </Link>
             }
           ></Item>
         ))}

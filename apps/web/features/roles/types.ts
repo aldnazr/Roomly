@@ -1,6 +1,7 @@
 export interface SetRoleRequest {
   permissions: string[];
 }
+
 export interface RoleResponse {
   data: RoleResponseDetail[];
 }
