@@ -47,7 +47,7 @@ curl -s http://localhost:4000/api/auth/login \
   -d '{"email":"admin@example.com","password":"..."}'
 ```
 
-- `200` → `{ "data": { "accessToken", "expiresIn": 3600, "user": { "id", "name", "email", "role" } } }`
+- `200` → `{ "data": { "accessToken", "expiresIn": 3600, "user": { "id", "username", "name", "email", "role" } } }`
 - `400` → malformed JSON or invalid fields
 - `401` → identical generic error for unknown email, wrong password, or missing hash
 - `500` → unexpected failure (details only in server logs)

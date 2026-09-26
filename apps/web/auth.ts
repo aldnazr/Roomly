@@ -23,6 +23,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           return {
             id: String(user.id),
+            username: user.username,
             name: user.name,
             email: user.email,
             role: user.role,
@@ -40,6 +41,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.username = user.username;
         token.role = user.role;
         token.accessToken = user.accessToken;
         token.expiresAt = user.expiresAt;
@@ -50,6 +52,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     async session({ session, token }) {
       session.user.id = token.id as string;
+      session.user.username = token.username as string;
       session.user.role = token.role as string;
       session.user.accessToken = token.accessToken as string;
 

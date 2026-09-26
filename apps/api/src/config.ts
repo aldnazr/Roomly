@@ -16,6 +16,7 @@ export function requireJwtSecret(): string {
 
 const adminEnvSchema = z.object({
   ADMIN_NAME: z.string().min(1),
+  ADMIN_USERNAME: z.string().min(1),
   ADMIN_EMAIL: z.email(),
   ADMIN_PASSWORD: z.string().min(8),
 });

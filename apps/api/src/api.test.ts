@@ -10,6 +10,7 @@ const dir = mkdtempSync(join(tmpdir(), "api-test-"));
 process.env.DATABASE_PATH = join(dir, "test.db");
 process.env.JWT_SECRET = "unit-test-secret-0123456789abcdef";
 process.env.ADMIN_NAME = "Admin";
+process.env.ADMIN_USERNAME = "admin";
 process.env.ADMIN_EMAIL = "admin@example.com";
 process.env.ADMIN_PASSWORD = "admin-password-123";
 
@@ -166,12 +167,19 @@ describe("POST /api/auth/login", () => {
       data: {
         accessToken: string;
         expiresIn: number;
-        user: { id: number; name: string; email: string; role: string };
+        user: {
+          id: number;
+          username: string;
+          name: string;
+          email: string;
+          role: string;
+        };
       };
     };
     expect(json.data.expiresIn).toBe(3600);
     expect(json.data.user).toEqual({
       id: expect.any(Number),
+      username: "admin",
       name: "Admin",
       email: "admin@example.com",
       role: "admin",

@@ -18,13 +18,14 @@ export async function login(body: unknown) {
       {
         id: number;
         name: string;
+        username: string;
         email: string;
         role: string;
         password_hash: string | null;
       },
       [string]
     >(
-      "SELECT id, name, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE",
+      "SELECT id, name, username, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE",
     )
     .get(email);
 
@@ -53,6 +54,7 @@ export async function login(body: unknown) {
       user: {
         id: user.id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
       },
