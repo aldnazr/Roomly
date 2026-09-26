@@ -4,5 +4,5 @@ import { RoleResponse } from "./types";
 
 export const roleApi = {
   list: async () =>
-    (await axiosInstance.get<RoleResponse>(API_ENDPOINTS.roles.base)).data,
+    (await axiosInstance.get<RoleResponse>(API_ENDPOINTS.role.base)).data,
 };
