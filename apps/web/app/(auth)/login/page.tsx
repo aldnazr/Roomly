@@ -72,7 +72,8 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-svh bg-muted/40 lg:grid-cols-[minmax(0,1.05fr)_minmax(28rem,0.95fr)]">
-      <section className="relative hidden min-h-svh overflow-hidden bg-foreground p-10 text-background lg:flex lg:flex-col xl:p-14">
+      {/* ponytail: scoped dark mode for hero panel; add theme-specific imagery when marketing assets ready */}
+      <section className="dark relative hidden min-h-svh overflow-hidden border-r border-border bg-background p-10 text-foreground lg:flex lg:flex-col xl:p-14">
         <div className="relative z-10 flex h-full flex-col">
           <BrandMark />
 
@@ -83,20 +84,20 @@ export default function LoginPage() {
             <h2 className="font-heading text-5xl leading-[1.05] font-semibold tracking-tight xl:text-6xl">
               Temukan dan kelola reservasi hotel Anda.
             </h2>
-            <p className="mt-6 max-w-md text-base leading-7 text-background/65">
+            <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground">
               Masuk untuk melihat pesanan kamar, riwayat menginap, dan penawaran
               terbaik di Roomly.
             </p>
           </div>
 
-          <div className="flex items-end justify-between gap-8 border-t border-background/15 pt-6 text-sm text-background/55">
+          <div className="flex items-end justify-between gap-8 border-t border-border pt-6 text-sm text-muted-foreground">
             <p>Roomly Hotel & Stays</p>
             <p>Pemesanan kamar jadi lebih mudah</p>
           </div>
         </div>
 
         <div
-          className="absolute -right-28 bottom-24 size-80 rotate-12 rounded-[4rem] border border-background/10"
+          className="absolute -right-28 bottom-24 size-80 rotate-12 rounded-[4rem] border border-border"
           aria-hidden="true"
         />
         <div
