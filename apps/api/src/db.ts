@@ -191,6 +191,22 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: 3,
+    name: "users_add_username",
+    up: (db) => {
+      const columns = db
+        .query<{ name: string }, []>("PRAGMA table_info(users)")
+        .all();
+      if (!columns.some((column) => column.name === "username")) {
+        db.run("ALTER TABLE users ADD COLUMN username TEXT");
+        // ponytail: unique index allows multiple legacy NULLs; API enforces required on write.
+        db.run(
+          "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL",
+        );
+      }
+    },
+  },
 ];
 
 export function migrate(database: Database = db): void {

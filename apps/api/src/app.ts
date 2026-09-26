@@ -5,6 +5,7 @@ import { HttpError } from "./errors";
 import { authRouter } from "./auth/routes";
 import { rolesRouter } from "./roles/routes";
 import { permissionsRouter } from "./permissions/routes";
+import { usersRouter } from "./users/routes";
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof HttpError) {
@@ -37,6 +38,7 @@ export function createApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/roles", rolesRouter);
   app.use("/api/permissions", permissionsRouter);
+  app.use("/api/users", usersRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { message: "Not found" } });

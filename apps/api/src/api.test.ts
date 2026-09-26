@@ -53,13 +53,14 @@ describe("migrations", () => {
       .query<{ id: number }, []>("SELECT id FROM schema_migrations")
       .all()
       .map((row) => row.id);
-    expect(applied).toEqual([1, 2]);
+    expect(applied).toEqual([1, 2, 3]);
 
     const columns = db
       .query<{ name: string }, []>("PRAGMA table_info(users)")
       .all()
       .map((column) => column.name);
     expect(columns).toContain("password_hash");
+    expect(columns).toContain("username");
   });
 
   test("is idempotent on rerun", () => {
@@ -67,7 +68,7 @@ describe("migrations", () => {
     const count = db
       .query<{ n: number }, []>("SELECT COUNT(*) AS n FROM schema_migrations")
       .get()!.n;
-    expect(count).toBe(2);
+    expect(count).toBe(3);
   });
 
   test("adds password_hash to a legacy database without it", () => {
@@ -101,14 +102,16 @@ describe("migrations", () => {
       .all()
       .map((column) => column.name);
     expect(columns).toContain("password_hash");
+    expect(columns).toContain("username");
 
     const row = legacy
-      .query<{ name: string; password_hash: string | null }, []>(
-        "SELECT name, password_hash FROM users WHERE email = 'old@example.com'",
+      .query<{ name: string; password_hash: string | null; username: string | null }, []>(
+        "SELECT name, password_hash, username FROM users WHERE email = 'old@example.com'",
       )
       .get();
     expect(row?.name).toBe("Old User");
     expect(row?.password_hash).toBeNull();
+    expect(row?.username).toBeNull();
 
     migrate(legacy);
     legacy.close();
@@ -297,6 +300,7 @@ describe("permissions API", () => {
       "refunds.approve",
       "staff.manage",
       "permissions.manage",
+      "users.manage",
     ]);
     expect(data[0]!.name).toBe("Browse rooms");
     expect(typeof data[0]!.description).toBe("string");
@@ -416,5 +420,204 @@ describe("roles API", () => {
     const res = await put("/staff/permissions", { permissions: [] }, adminToken);
     expect(res.status).toBe(200);
     expect(await viewPermissions("/staff", adminToken)).toEqual([]);
+  });
+});
+
+describe("users API", () => {
+  const usersUrl = (path = "") => `${baseUrl}/api/users${path}`;
+  const get = (path: string, token?: string) =>
+    fetch(usersUrl(path), token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+  const post = (path: string, body: unknown, token?: string) =>
+    fetch(usersUrl(path), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const patch = (path: string, body: unknown, token?: string) =>
+    fetch(usersUrl(path), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const del = (path: string, token?: string) =>
+    fetch(usersUrl(path), {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+  let adminToken: string;
+  let guestToken: string;
+
+  beforeAll(async () => {
+    const admin = await login({ email: "admin@example.com", password: "rotated-password-456" });
+    adminToken = ((await admin.json()) as { data: { accessToken: string } }).data.accessToken;
+
+    const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
+    guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
+  });
+
+  test("returns 401 without or with an invalid token", async () => {
+    expect((await get("")).status).toBe(401);
+    expect((await get("", "not-a-jwt")).status).toBe(401);
+    expect((await post("", {}, "not-a-jwt")).status).toBe(401);
+  });
+
+  test("returns 403 when the caller lacks users.manage", async () => {
+    expect((await get("", guestToken)).status).toBe(403);
+    expect((await get("/1", guestToken)).status).toBe(403);
+    expect((await post("", {}, guestToken)).status).toBe(403);
+    expect((await patch("/1", {}, guestToken)).status).toBe(403);
+    expect((await del("/1", guestToken)).status).toBe(403);
+  });
+
+  test("creates a new user and allows login with credentials", async () => {
+    const payload = {
+      username: "staff_john",
+      email: "john@example.com",
+      password: "secure-password-123",
+      role: "staff",
+    };
+
+    const res = await post("", payload, adminToken);
+    expect(res.status).toBe(201);
+
+    const json = (await res.json()) as {
+      data: { id: number; username: string; email: string; role: string };
+    };
+    expect(json.data.username).toBe("staff_john");
+    expect(json.data.email).toBe("john@example.com");
+    expect(json.data.role).toBe("staff");
+
+    const text = JSON.stringify(json);
+    expect(text).not.toContain("password_hash");
+    expect(text.toLowerCase().includes("password")).toBeFalse();
+
+    const authRes = await login({ email: "john@example.com", password: "secure-password-123" });
+    expect(authRes.status).toBe(200);
+  });
+
+  test("validates input and rejects duplicate email/username", async () => {
+    const shortPass = await post(
+      "",
+      { username: "short_p", email: "short@example.com", password: "123", role: "staff" },
+      adminToken,
+    );
+    expect(shortPass.status).toBe(400);
+
+    const badEmail = await post(
+      "",
+      { username: "bad_e", email: "not-an-email", password: "valid-pass-123", role: "staff" },
+      adminToken,
+    );
+    expect(badEmail.status).toBe(400);
+
+    const bogusRole = await post(
+      "",
+      { username: "bogus_r", email: "bogus@example.com", password: "valid-pass-123", role: "superhero" },
+      adminToken,
+    );
+    expect(bogusRole.status).toBe(400);
+
+    const dupEmail = await post(
+      "",
+      { username: "john_clone", email: "john@example.com", password: "valid-pass-123", role: "staff" },
+      adminToken,
+    );
+    expect(dupEmail.status).toBe(409);
+
+    const dupUser = await post(
+      "",
+      { username: "staff_john", email: "john2@example.com", password: "valid-pass-123", role: "staff" },
+      adminToken,
+    );
+    expect(dupUser.status).toBe(409);
+  });
+
+  test("lists all users without exposing password hashes", async () => {
+    const res = await get("", adminToken);
+    expect(res.status).toBe(200);
+
+    const json = (await res.json()) as { data: { id: number; email: string }[] };
+    expect(Array.isArray(json.data)).toBeTrue();
+    expect(json.data.length).toBeGreaterThanOrEqual(2);
+
+    const text = JSON.stringify(json);
+    expect(text).not.toContain("password_hash");
+  });
+
+  test("retrieves a single user by id and returns 404 for unknown id", async () => {
+    const listRes = await get("", adminToken);
+    const listJson = (await listRes.json()) as { data: { id: number; username: string }[] };
+    const first = listJson.data[0]!;
+
+    const res = await get(`/${first.id}`, adminToken);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { data: { id: number } };
+    expect(json.data.id).toBe(first.id);
+
+    expect((await get("/99999", adminToken)).status).toBe(404);
+    expect((await get("/not-a-number", adminToken)).status).toBe(400);
+  });
+
+  test("updates an existing user and reflects changes", async () => {
+    const created = await post(
+      "",
+      { username: "to_update", email: "update@example.com", password: "initial-password-123", role: "guest" },
+      adminToken,
+    );
+    const { id } = ((await created.json()) as { data: { id: number } }).data;
+
+    const patchRes = await patch(
+      `/${id}`,
+      { email: "updated@example.com", role: "staff" },
+      adminToken,
+    );
+    expect(patchRes.status).toBe(200);
+    const patchedJson = (await patchRes.json()) as { data: { email: string; role: string } };
+    expect(patchedJson.data.email).toBe("updated@example.com");
+    expect(patchedJson.data.role).toBe("staff");
+
+    const passPatch = await patch(
+      `/${id}`,
+      { password: "new-secret-password-123" },
+      adminToken,
+    );
+    expect(passPatch.status).toBe(200);
+
+    expect(
+      (await login({ email: "updated@example.com", password: "initial-password-123" })).status,
+    ).toBe(401);
+
+    expect(
+      (await login({ email: "updated@example.com", password: "new-secret-password-123" })).status,
+    ).toBe(200);
+
+    const conflictPatch = await patch(
+      `/${id}`,
+      { email: "john@example.com" },
+      adminToken,
+    );
+    expect(conflictPatch.status).toBe(409);
+  });
+
+  test("deletes a user and confirms 404 afterwards", async () => {
+    const created = await post(
+      "",
+      { username: "to_delete", email: "delete_me@example.com", password: "temp-password-123", role: "guest" },
+      adminToken,
+    );
+    const { id } = ((await created.json()) as { data: { id: number } }).data;
+
+    const delRes = await del(`/${id}`, adminToken);
+    expect(delRes.status).toBe(200);
+
+    expect((await get(`/${id}`, adminToken)).status).toBe(404);
+    expect((await del(`/${id}`, adminToken)).status).toBe(404);
   });
 });

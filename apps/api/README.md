@@ -122,6 +122,75 @@ curl -s http://localhost:4000/api/permissions -H "Authorization: Bearer $TOKEN"
 The list is ordered by seed order and reflects the current database contents;
 a permission added or renamed via the seeder shows up on the next request.
 
+## Users
+
+User management endpoints require `Authorization: Bearer <accessToken>` and the
+`users.manage` permission on the caller's role. Responses never expose password
+hashes.
+
+### List
+
+`GET /api/users`
+
+```bash
+curl -s http://localhost:4000/api/users -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": [ { "id": 1, "username": "admin", "name": "Admin", "email": "admin@example.com", "role": "admin" }, ... ] }`
+- `401` → missing, malformed, or expired token
+- `403` → caller's role lacks `users.manage`
+
+### Get
+
+`GET /api/users/:id`
+
+- `200` → `{ "data": { "id": 1, "username": "admin", "name": "Admin", "email": "admin@example.com", "role": "admin" } }`
+- `400` → invalid user ID format
+- `404` → user not found
+
+### Create
+
+`POST /api/users` with JSON `{ "username", "email", "password", "role" }`.
+
+```bash
+curl -s -X POST http://localhost:4000/api/users \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"username":"staff_alex","email":"alex@example.com","password":"secure-pass-123","role":"staff"}'
+```
+
+- `201` → `{ "data": { "id": 2, "username": "staff_alex", "name": "staff_alex", "email": "alex@example.com", "role": "staff" } }`
+- `400` → body validation failed (password < 8 chars, invalid email, username format, or role does not exist)
+- `409` → email or username already in use
+
+### Update
+
+`PATCH /api/users/:id` with optional fields `{ "username", "email", "password", "role" }`.
+
+```bash
+curl -s -X PATCH http://localhost:4000/api/users/2 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"role":"manager"}'
+```
+
+- `200` → updated user object
+- `400` → invalid fields or no fields provided
+- `404` → user not found
+- `409` → new email or username is already taken by another user
+
+### Delete
+
+`DELETE /api/users/:id`
+
+```bash
+curl -s -X DELETE http://localhost:4000/api/users/2 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": { "message": "User deleted successfully" } }`
+- `404` → user not found
+
 ## Notes
 
 - Access tokens cannot be revoked before they expire.

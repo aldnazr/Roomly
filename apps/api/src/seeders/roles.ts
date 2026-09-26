@@ -76,6 +76,11 @@ const permissions = [
     name: "Manage permissions",
     description: "Mengelola permission untuk setiap role.",
   },
+  {
+    slug: "users.manage",
+    name: "Manage users",
+    description: "Membuat, melihat, mengubah, dan menghapus akun pengguna.",
+  },
 ] as const;
 
 const roles = [
