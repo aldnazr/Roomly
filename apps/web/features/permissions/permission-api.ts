@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@/lib/api/api-endpoints";
 import { axiosInstance } from "@/lib/api/axios-instance";
-import { PermissionResponse } from "./types";
+import { PermissionResponse, SetPermissionPayload } from "./types";
 
 export const permissionApi = {
   list: async () =>
@@ -9,4 +9,6 @@ export const permissionApi = {
         API_ENDPOINTS.permissions.base,
       )
     ).data,
+  set: async (userRole: string, payload: SetPermissionPayload) =>
+    await axiosInstance.put(API_ENDPOINTS.permissions.set(userRole), payload),
 };

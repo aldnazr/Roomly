@@ -7,9 +7,9 @@ export const API_ENDPOINTS = {
   },
   permissions: {
     base: "/api/permissions",
+    set: (userRole: string) => `/api/roles/${userRole}/permissions`,
   },
   roles: {
     base: "/api/roles",
-    permission: (slug: string) => `/api/roles/${slug}/permissions`,
   },
 } as const;

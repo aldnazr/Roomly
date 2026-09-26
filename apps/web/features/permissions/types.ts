@@ -7,3 +7,7 @@ export interface PermissionResponseDetail {
   name: string;
   description: string;
 }
+
+export interface SetPermissionPayload {
+  permissions: string[];
+}
