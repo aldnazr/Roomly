@@ -75,30 +75,6 @@ export function NavUser({ user, avatar, logout }: NavUserProps) {
             sideOffset={4}
           >
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="size-8 rounded-lg grayscale">
-                    <AvatarImage
-                      src={avatar ?? undefined}
-                      alt={data?.user.name ?? ""}
-                    />
-                    <AvatarFallback>
-                      <IconUser className="size-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">
-                      {data?.user.name ?? ""}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {data?.user.email}
-                    </span>
-                  </div>
-                </div>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
               <DropdownMenuItem>
                 <IconUserCircle />
                 Account

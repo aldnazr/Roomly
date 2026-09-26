@@ -8,16 +8,9 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Separator } from "@/components/ui/separator";
-import { usePathname } from "next/navigation";
-
-const TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/user": "Manajemen User",
-  "/role": "Manajemen Role",
-};
+import { RouteBreadcrumb } from "@/components/route-breadcrumb";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -26,13 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2" />
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {TITLES[pathname] ??
-                Object.entries(TITLES).find(
-                  ([path]) => path !== "/" && pathname.startsWith(path),
-                )?.[1] ??
-                "Operasional"}
-            </span>
+            <RouteBreadcrumb />
           </div>
           <ModeToggle />
         </header>
