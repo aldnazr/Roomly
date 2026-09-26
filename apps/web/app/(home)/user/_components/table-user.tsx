@@ -15,10 +15,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserResponse } from "@/features/users/types";
+import { useUserDelete } from "@/features/users/use-users";
 import { IconDots } from "@tabler/icons-react";
 import Link from "next/link";
 
 export function TableUser({ users }: { users: UserResponse | undefined }) {
+  const { mutate, isPending, isError } = useUserDelete();
+
   return (
     <Table>
       <TableHeader>
@@ -57,7 +60,10 @@ export function TableUser({ users }: { users: UserResponse | undefined }) {
                       Edit
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => mutate({ id: user.id.toString() })}
+                    >
                       Delete
                     </DropdownMenuItem>
                   </DropdownMenuContent>

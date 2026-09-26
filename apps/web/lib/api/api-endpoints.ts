@@ -15,7 +15,7 @@ export const API_ENDPOINTS = {
   user: {
     list: "/api/users",
     create: "/api/users",
-    update: (id: string) => `/api/users${id}`,
-    delete: (id: string) => `/api/users${id}`,
+    update: (id: string) => `/api/users/${id}`,
+    delete: (id: string) => `/api/users/${id}`,
   },
 } as const;

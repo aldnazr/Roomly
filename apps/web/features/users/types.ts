@@ -9,3 +9,10 @@ export interface UserDetail {
   email: string;
   role: string;
 }
+
+export interface UserCreatePayload {
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}

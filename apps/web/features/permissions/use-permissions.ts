@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { permissionApi } from "./permission-api";
 import { SetPermissionPayload } from "./types";
+import { roleKeys } from "../roles/use-roles";
 
 export const permissionKeys = {
   all: ["permission"] as const,
@@ -20,8 +21,10 @@ export function usePermission() {
 export function useSetPermission(userRole: string) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: permissionKeys.set(),
     mutationFn: (payload: SetPermissionPayload) =>
       permissionApi.set(userRole, payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["roles"] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: roleKeys.list() }),
   });
 }

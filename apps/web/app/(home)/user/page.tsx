@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@/features/users/use-users";
+import { useUser, useUserDelete } from "@/features/users/use-users";
 import { TableUser } from "./_components/table-user";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
