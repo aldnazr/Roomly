@@ -1,3 +1,5 @@
+"use client";
+
 import {
   SidebarInset,
   SidebarProvider,
@@ -6,9 +8,16 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Separator } from "@/components/ui/separator";
+import { usePathname } from "next/navigation";
 
-// ponytail: static header bar; upgrade to dynamic breadcrumb when nested operational routes grow.
+const TITLES: Record<string, string> = {
+  "/": "Dashboard",
+  "/user": "Manajemen User",
+  "/role": "Manajemen Role",
+};
+
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -18,7 +27,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2" />
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Operasional
+              {TITLES[pathname] ??
+                Object.entries(TITLES).find(
+                  ([path]) => path !== "/" && pathname.startsWith(path),
+                )?.[1] ??
+                "Operasional"}
             </span>
           </div>
           <ModeToggle />
