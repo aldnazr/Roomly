@@ -5,7 +5,6 @@
 For UI, copy, people, mobile layout, or code comments work, load the antislop skill for the task:
 
 - Core filter, always on: `antislop`
-- Code comments: `antislop-code`
 - Mobile / responsive: `antislop-layoutmobile`
 - Copy & text: `antislop-copywriting`
 - UI / visual: `antislop-ui`

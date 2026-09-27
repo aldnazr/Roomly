@@ -9,11 +9,13 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
+import { PermissionResponseDetail } from "@/features/permissions/types";
 import { useSetPermission } from "@/features/permissions/use-permissions";
 import { useRoleDetail } from "@/features/roles/use-roles";
+import { capitalize } from "@/lib/utils";
 import { IconDeviceFloppy, IconRotate } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function RoleDetail() {
   const { slug: roleSlug } = useParams<{ slug: string }>();
@@ -28,6 +30,39 @@ export default function RoleDetail() {
       setChecked(new Set(role.permissions));
     }
   }, [role]);
+
+  interface PermissionGroup {
+    group: string;
+    items: PermissionResponseDetail[];
+  }
+
+  function groupedPermission(
+    data: PermissionResponseDetail[],
+  ): PermissionGroup[] {
+    const grouped = data.reduce<Record<string, PermissionResponseDetail[]>>(
+      (acc, item) => {
+        const prefix = item.slug.split(".")[0];
+
+        if (!acc[prefix]) acc[prefix] = [];
+        acc[prefix].push(item);
+
+        return acc;
+      },
+      {},
+    );
+
+    return Object.entries(grouped)
+      .map(([prefix, items]) => ({
+        group: prefix,
+        items: items.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.group.localeCompare(b.group));
+  }
+
+  const groups = useMemo(
+    () => groupedPermission(permissions?.data ?? []),
+    [permissions?.data],
+  );
 
   const hasFormChange =
     !!role &&
@@ -47,26 +82,30 @@ export default function RoleDetail() {
   function save() {
     mutate({ permissions: Array.from(checked) });
   }
+
   return (
     <>
       <div className="flex flex-col gap-2">
-        {permissions?.data.map((permission) => (
-          <FieldGroup key={permission.slug}>
-            <Field orientation={"horizontal"}>
-              <Checkbox
-                id={permission.slug}
-                name={permission.name}
-                checked={checked.has(permission.slug)}
-                onCheckedChange={() => toggleChecked(permission.slug)}
-              />
-              <FieldContent>
-                <FieldLabel htmlFor={permission.slug}>
-                  {permission.name}
-                </FieldLabel>
-                <FieldDescription>{permission.description}</FieldDescription>
-              </FieldContent>
-            </Field>
-          </FieldGroup>
+        {groups.map((group) => (
+          <div key={group.group}>
+            <h3>{group.group}</h3>
+            {group.items.map((item) => (
+              <FieldGroup key={item.slug}>
+                <Field orientation={"horizontal"}>
+                  <Checkbox
+                    id={item.slug}
+                    name={item.name}
+                    checked={checked.has(item.slug)}
+                    onCheckedChange={() => toggleChecked(item.slug)}
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor={item.slug}>{item.name}</FieldLabel>
+                    <FieldDescription>{item.description}</FieldDescription>
+                  </FieldContent>
+                </Field>
+              </FieldGroup>
+            ))}
+          </div>
         ))}
       </div>
       {hasFormChange && (
