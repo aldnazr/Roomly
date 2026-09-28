@@ -207,6 +207,25 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: 4,
+    name: "room_types_add_amenities_photos",
+    up: (db) => {
+      const columns = db
+        .query<{ name: string }, []>("PRAGMA table_info(room_types)")
+        .all();
+      if (!columns.some((column) => column.name === "amenities")) {
+        db.run(
+          "ALTER TABLE room_types ADD COLUMN amenities TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(amenities) AND json_type(amenities) = 'array')",
+        );
+      }
+      if (!columns.some((column) => column.name === "photos")) {
+        db.run(
+          "ALTER TABLE room_types ADD COLUMN photos TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(photos) AND json_type(photos) = 'array')",
+        );
+      }
+    },
+  },
 ];
 
 export function migrate(database: Database = db): void {

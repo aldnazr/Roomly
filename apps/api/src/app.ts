@@ -6,12 +6,14 @@ import { authRouter } from "./auth/routes";
 import { rolesRouter } from "./roles/routes";
 import { permissionsRouter } from "./permissions/routes";
 import { usersRouter } from "./users/routes";
+import { roomTypesRouter } from "./room-types/routes";
+import { availabilityRouter } from "./availability/routes";
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: { message: err.message } });
   } else if (err instanceof ZodError) {
-    res.status(400).json({ error: { message: "Invalid request body" } });
+    res.status(400).json({ error: { message: err.issues[0]?.message ?? "Invalid request body" } });
   } else if (err instanceof SyntaxError || err?.type === "entity.parse.failed") {
     res.status(400).json({ error: { message: "Malformed JSON body" } });
   } else if (err?.type === "entity.too.large") {
@@ -39,6 +41,8 @@ export function createApp() {
   app.use("/api/roles", rolesRouter);
   app.use("/api/permissions", permissionsRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/room-types", roomTypesRouter);
+  app.use("/api/availability", availabilityRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { message: "Not found" } });

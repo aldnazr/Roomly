@@ -191,6 +191,93 @@ curl -s -X DELETE http://localhost:4000/api/users/2 \
 - `200` → `{ "data": { "message": "User deleted successfully" } }`
 - `404` → user not found
 
+## Room Types
+
+Manage room types (Standard, Deluxe, etc.). Reading requires `rooms.browse` permission (held by guest, staff, manager, admin). Create, update, and delete require `room_types.manage` permission (manager, admin).
+
+### List
+
+`GET /api/room-types[?capacity_min=N&capacity_max=N]`
+
+```bash
+curl -s http://localhost:4000/api/room-types \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": [ { "id": 1, "name": "Deluxe", "base_price": 750000, "capacity": 2, "description": "...", "amenities": ["WiFi", "AC"], "photos": ["https://..."], "total_rooms": 5 } ] }`
+
+### Get
+
+`GET /api/room-types/:id`
+
+- `200` → single room type object
+- `400` → invalid room type ID
+- `404` → room type not found
+
+### Create
+
+`POST /api/room-types` with JSON `{ "name", "capacity", "base_price", "description"?, "amenities"?, "photos"? }`.
+
+```bash
+curl -s -X POST http://localhost:4000/api/room-types \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Deluxe Ocean","capacity":2,"base_price":850000,"description":"Ocean view","amenities":["WiFi","Balcony"],"photos":["https://example.com/img.jpg"]}'
+```
+
+- `201` → created room type object
+- `400` → body validation failed
+- `409` → room type name already exists
+
+### Update
+
+`PATCH /api/room-types/:id` with optional fields `{ "name", "capacity", "base_price", "description", "amenities", "photos" }`.
+
+```bash
+curl -s -X PATCH http://localhost:4000/api/room-types/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"base_price":900000}'
+```
+
+- `200` → updated room type object
+- `400` → invalid fields or no fields provided
+- `404` → room type not found
+- `409` → name already taken by another room type
+
+### Delete
+
+`DELETE /api/room-types/:id`
+
+```bash
+curl -s -X DELETE http://localhost:4000/api/room-types/1 \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": { "message": "Room type deleted successfully" } }`
+- `404` → room type not found
+- `409` → cannot delete room type because physical rooms or reservations reference it
+
+## Availability
+
+Search for available room types across a requested date range and party size. Requires `rooms.browse` permission.
+
+Rooms in `maintenance` status are excluded from inventory. Active reservations (`pending`, `confirmed`, `checked_in`) overlapping the stay reduce available rooms per night (checkout day is non-blocking). Active pricing rules (`price_override` or `multiplier`) are applied automatically to calculate nightly rates and total stay price.
+
+`GET /api/availability?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD&guests=N`
+
+```bash
+curl -s "http://localhost:4000/api/availability?check_in=2026-10-01&check_out=2026-10-03&guests=2" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": { "check_in": "2026-10-01", "check_out": "2026-10-03", "nights": 2, "guests": 2, "results": [ { "room_type": { ... }, "available_rooms": 3, "price": { "nightly": [ { "date": "2026-10-01", "price": 850000 }, { "date": "2026-10-02", "price": 850000 } ], "total": 1700000, "average_nightly": 850000 } } ] } }`
+- `400` → missing/invalid date, `check_out <= check_in`, `guests < 1`, or stay exceeds 30 nights
+- `401` → missing or invalid access token
+
+Only room types with `capacity >= guests` and `available_rooms > 0` are returned in `results`.
+
+
 ## Notes
 
 - Access tokens cannot be revoked before they expire.

@@ -51,10 +51,10 @@ afterAll(() => {
 describe("migrations", () => {
   test("applies all migrations on a fresh database", () => {
     const applied = db
-      .query<{ id: number }, []>("SELECT id FROM schema_migrations")
+      .query<{ id: number }, []>("SELECT id FROM schema_migrations ORDER BY id ASC")
       .all()
       .map((row) => row.id);
-    expect(applied).toEqual([1, 2, 3]);
+    expect(applied).toEqual([1, 2, 3, 4]);
 
     const columns = db
       .query<{ name: string }, []>("PRAGMA table_info(users)")
@@ -62,6 +62,13 @@ describe("migrations", () => {
       .map((column) => column.name);
     expect(columns).toContain("password_hash");
     expect(columns).toContain("username");
+
+    const roomTypeCols = db
+      .query<{ name: string }, []>("PRAGMA table_info(room_types)")
+      .all()
+      .map((column) => column.name);
+    expect(roomTypeCols).toContain("amenities");
+    expect(roomTypeCols).toContain("photos");
   });
 
   test("is idempotent on rerun", () => {
@@ -69,7 +76,7 @@ describe("migrations", () => {
     const count = db
       .query<{ n: number }, []>("SELECT COUNT(*) AS n FROM schema_migrations")
       .get()!.n;
-    expect(count).toBe(3);
+    expect(count).toBe(4);
   });
 
   test("adds password_hash to a legacy database without it", () => {
@@ -629,3 +636,294 @@ describe("users API", () => {
     expect((await del(`/${id}`, adminToken)).status).toBe(404);
   });
 });
+
+describe("room-types API", () => {
+  const roomTypesUrl = (path: string) => `${baseUrl}/api/room-types${path}`;
+  const get = (path: string, token?: string) =>
+    fetch(roomTypesUrl(path), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  const post = (path: string, body: unknown, token?: string) =>
+    fetch(roomTypesUrl(path), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const patch = (path: string, body: unknown, token?: string) =>
+    fetch(roomTypesUrl(path), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const del = (path: string, token?: string) =>
+    fetch(roomTypesUrl(path), {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+  let adminToken: string;
+  let guestToken: string;
+
+  beforeAll(async () => {
+    const admin = await login({ email: "admin@example.com", password: "rotated-password-456" });
+    adminToken = ((await admin.json()) as { data: { accessToken: string } }).data.accessToken;
+
+    const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
+    guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
+  });
+
+  test("returns 401 without or with an invalid token", async () => {
+    expect((await get("")).status).toBe(401);
+    expect((await get("", "bad-token")).status).toBe(401);
+    expect((await post("", {}, "bad-token")).status).toBe(401);
+  });
+
+  test("returns 403 on mutation endpoints for guest role", async () => {
+    expect((await post("", { name: "Deluxe", capacity: 2, base_price: 500000 }, guestToken)).status).toBe(403);
+    expect((await patch("/1", { base_price: 600000 }, guestToken)).status).toBe(403);
+    expect((await del("/1", guestToken)).status).toBe(403);
+  });
+
+  test("creates a room type and validates fields", async () => {
+    const payload = {
+      name: "Standard King",
+      capacity: 2,
+      base_price: 450000,
+      description: "King bed room",
+      amenities: ["WiFi", "AC"],
+      photos: ["https://example.com/king.jpg"],
+    };
+
+    const res = await post("", payload, adminToken);
+    expect(res.status).toBe(201);
+    const json = (await res.json()) as { data: { id: number; name: string; amenities: string[]; photos: string[] } };
+    expect(json.data.id).toBeGreaterThan(0);
+    expect(json.data.name).toBe("Standard King");
+    expect(json.data.amenities).toEqual(["WiFi", "AC"]);
+    expect(json.data.photos).toEqual(["https://example.com/king.jpg"]);
+
+    expect((await post("", payload, adminToken)).status).toBe(409);
+    expect((await post("", { name: "", capacity: 0, base_price: -100 }, adminToken)).status).toBe(400);
+    expect((await post("", { name: "Single", capacity: 1, base_price: 250000, photos: ["bad"] }, adminToken)).status).toBe(400);
+  });
+
+  test("lists room types and applies filters", async () => {
+    await post("", { name: "Family Suite", capacity: 5, base_price: 1200000 }, adminToken);
+
+    const allRes = await get("", guestToken);
+    expect(allRes.status).toBe(200);
+    const all = ((await allRes.json()) as { data: { name: string; capacity: number }[] }).data;
+    expect(all.length).toBeGreaterThanOrEqual(2);
+
+    const filtered = await get("?capacity_min=4", guestToken);
+    expect(filtered.status).toBe(200);
+    const filteredList = ((await filtered.json()) as { data: { name: string; capacity: number }[] }).data;
+    expect(filteredList.every((rt) => rt.capacity >= 4)).toBeTrue();
+  });
+
+  test("retrieves a single room type and returns 404 for unknown", async () => {
+    const list = ((await (await get("", guestToken)).json()) as { data: { id: number }[] }).data;
+    const first = list[0]!;
+
+    const res = await get(`/${first.id}`, guestToken);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { data: { id: number } };
+    expect(json.data.id).toBe(first.id);
+
+    expect((await get("/99999", guestToken)).status).toBe(404);
+    expect((await get("/not-number", guestToken)).status).toBe(400);
+  });
+
+  test("updates a room type with PATCH", async () => {
+    const created = await post("", { name: "To Update", capacity: 2, base_price: 300000 }, adminToken);
+    const { id } = ((await created.json()) as { data: { id: number } }).data;
+
+    const res = await patch(`/${id}`, { base_price: 350000, amenities: ["Coffee"] }, adminToken);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { data: { base_price: number; amenities: string[] } };
+    expect(json.data.base_price).toBe(350000);
+    expect(json.data.amenities).toEqual(["Coffee"]);
+
+    expect((await patch(`/${id}`, {}, adminToken)).status).toBe(400);
+  });
+
+  test("deletes room type and guards against FK reference deletion", async () => {
+    const created = await post("", { name: "Guarded Suite", capacity: 2, base_price: 600000 }, adminToken);
+    const { id } = ((await created.json()) as { data: { id: number } }).data;
+
+    db.prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'G-101', 'available')").run(id);
+
+    const delGuarded = await del(`/${id}`, adminToken);
+    expect(delGuarded.status).toBe(409);
+
+    db.prepare("DELETE FROM rooms WHERE room_number = 'G-101'").run();
+
+    const delSuccess = await del(`/${id}`, adminToken);
+    expect(delSuccess.status).toBe(200);
+    expect((await get(`/${id}`, guestToken)).status).toBe(404);
+  });
+});
+
+
+describe("availability API", () => {
+  const availUrl = (qs: string) => `${baseUrl}/api/availability${qs}`;
+  const get = (qs: string, token?: string) =>
+    fetch(availUrl(qs), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+  let guestToken: string;
+  let roomTypeId: number;
+  let room1Id: number;
+  let room2Id: number;
+  let guestId: number;
+
+  beforeAll(async () => {
+    const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
+    guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
+
+    const rt = db
+      .prepare(
+        "INSERT INTO room_types (name, base_price, capacity, description, amenities, photos) VALUES ('Avail Suite', 500000, 2, 'Test', '[]', '[]') RETURNING id",
+      )
+      .get() as { id: number };
+    roomTypeId = rt.id;
+
+    const r1 = db
+      .prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-101', 'available') RETURNING id")
+      .get(roomTypeId) as { id: number };
+    room1Id = r1.id;
+
+    const r2 = db
+      .prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-102', 'available') RETURNING id")
+      .get(roomTypeId) as { id: number };
+    room2Id = r2.id;
+
+    db.prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-103', 'maintenance')").run(
+      roomTypeId,
+    );
+
+    const g = db
+      .prepare("INSERT INTO guests (name, email, phone) VALUES ('Avail Guest', 'guest@avail.test', '12345') RETURNING id")
+      .get() as { id: number };
+    guestId = g.id;
+  });
+
+  test("validates query parameters", async () => {
+    expect((await get("", guestToken)).status).toBe(400);
+    expect((await get("?check_in=2026-11-05&check_out=2026-11-01&guests=2", guestToken)).status).toBe(400);
+    expect((await get("?check_in=2026-11-01&check_out=2026-11-01&guests=2", guestToken)).status).toBe(400);
+    expect((await get("?check_in=2026-11-01&check_out=2026-11-02&guests=0", guestToken)).status).toBe(400);
+    expect((await get("?check_in=not-date&check_out=2026-11-02&guests=1", guestToken)).status).toBe(400);
+    expect((await get("?check_in=2026-11-01&check_out=2026-12-05&guests=2", guestToken)).status).toBe(400);
+  });
+
+  test("calculates operable rooms and pricing breakdown accurately", async () => {
+    const res = await get("?check_in=2026-11-10&check_out=2026-11-12&guests=2", guestToken);
+    expect(res.status).toBe(200);
+
+    const json = (await res.json()) as {
+      data: {
+        nights: number;
+        guests: number;
+        results: {
+          room_type: { id: number };
+          available_rooms: number;
+          price: {
+            nightly: { date: string; price: number }[];
+            total: number;
+            average_nightly: number;
+          };
+        }[];
+      };
+    };
+
+    expect(json.data.nights).toBe(2);
+    const target = json.data.results.find((r) => r.room_type.id === roomTypeId);
+    expect(target).toBeDefined();
+    expect(target!.available_rooms).toBe(2);
+    expect(target!.price.nightly).toEqual([
+      { date: "2026-11-10", price: 500000 },
+      { date: "2026-11-11", price: 500000 },
+    ]);
+    expect(target!.price.total).toBe(1000000);
+  });
+
+  test("filters out room types where capacity is less than requested guests", async () => {
+    const res = await get("?check_in=2026-11-10&check_out=2026-11-12&guests=3", guestToken);
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { data: { results: { room_type: { id: number } }[] } };
+    expect(json.data.results.some((r) => r.room_type.id === roomTypeId)).toBeFalse();
+  });
+
+  test("applies pricing rules with override and multiplier", async () => {
+    db.prepare(
+      "INSERT INTO pricing_rules (room_type_id, start_date, end_date, multiplier) VALUES (?, '2026-11-15', '2026-11-15', 1.2)",
+    ).run(roomTypeId);
+
+    db.prepare(
+      "INSERT INTO pricing_rules (room_type_id, start_date, end_date, price_override) VALUES (?, '2026-11-16', '2026-11-16', 750000)",
+    ).run(roomTypeId);
+
+    const res = await get("?check_in=2026-11-15&check_out=2026-11-17&guests=2", guestToken);
+    expect(res.status).toBe(200);
+
+    const json = (await res.json()) as {
+      data: {
+        results: {
+          room_type: { id: number };
+          price: {
+            nightly: { date: string; price: number }[];
+            total: number;
+          };
+        }[];
+      };
+    };
+
+    const target = json.data.results.find((r) => r.room_type.id === roomTypeId)!;
+    expect(target.price.nightly).toEqual([
+      { date: "2026-11-15", price: 600000 },
+      { date: "2026-11-16", price: 750000 },
+    ]);
+    expect(target.price.total).toBe(1350000);
+  });
+
+  test("decrements availability with reservations and unblocks on checkout day", async () => {
+    db.prepare(
+      `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
+       VALUES (?, ?, ?, '2026-11-20', '2026-11-22', 'confirmed', 1000000)`,
+    ).run(guestId, roomTypeId, room1Id);
+
+    const overlapping = await get("?check_in=2026-11-20&check_out=2026-11-22&guests=2", guestToken);
+    const overJson = (await overlapping.json()) as {
+      data: { results: { room_type: { id: number }; available_rooms: number }[] };
+    };
+    const overTarget = overJson.data.results.find((r) => r.room_type.id === roomTypeId)!;
+    expect(overTarget.available_rooms).toBe(1);
+
+    const coSearch = await get("?check_in=2026-11-22&check_out=2026-11-24&guests=2", guestToken);
+    const coJson = (await coSearch.json()) as {
+      data: { results: { room_type: { id: number }; available_rooms: number }[] };
+    };
+    const coTarget = coJson.data.results.find((r) => r.room_type.id === roomTypeId)!;
+    expect(coTarget.available_rooms).toBe(2);
+
+    db.prepare(
+      `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
+       VALUES (?, ?, ?, '2026-11-20', '2026-11-22', 'confirmed', 1000000)`,
+    ).run(guestId, roomTypeId, room2Id);
+
+    const fullHouse = await get("?check_in=2026-11-20&check_out=2026-11-22&guests=2", guestToken);
+    const fullJson = (await fullHouse.json()) as {
+      data: { results: { room_type: { id: number } }[] };
+    };
+    expect(fullJson.data.results.some((r) => r.room_type.id === roomTypeId)).toBeFalse();
+  });
+});
+
