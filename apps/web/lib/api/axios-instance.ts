@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 
 export const axiosInstance = axios.create({
   baseURL: "http://localhost:4000",
@@ -20,15 +20,12 @@ axiosInstance.interceptors.request.use(async (config) => {
   return config;
 });
 
-// axiosInstance.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     if (error.response?.status === 401) {
-//       // Redirect to login or clear local state
-//       console.log("Session expired or invalid. Redirecting to login...");
-//       // window.location.href = "/login";
-//       localStorage.clear();
-//     }
-//     return Promise.reject(error);
-//   },
-// );
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await signOut({ redirectTo: "/login" });
+    }
+    return Promise.reject(error);
+  },
+);
