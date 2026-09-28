@@ -18,6 +18,4 @@ try {
   process.exit(1);
 }
 
-createApp().listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
-});
+createApp().listen(port);

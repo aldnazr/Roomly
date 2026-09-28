@@ -1,19 +1,10 @@
 "use client";
 
-import { useUser, useUserDelete } from "@/features/users/use-users";
-import { TableUser } from "./_components/table-user";
+import { useUser } from "@/features/users/use-users";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { TableSkeleton } from "./_components/table-skeleton";
+import { TableSkeleton } from "@/features/users/components/table-skeleton";
+import { TableUser } from "@/features/users/components/table-user";
 
 export default function UserPage() {
   const { data, isLoading } = useUser();

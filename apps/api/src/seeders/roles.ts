@@ -39,7 +39,8 @@ const permissions = [
   {
     slug: "rooms.update_status",
     name: "Update room status",
-    description: "Mengubah status kamar, termasuk dirty, clean, dan maintenance.",
+    description:
+      "Mengubah status kamar, termasuk dirty, clean, dan maintenance.",
   },
   {
     slug: "room_types.manage",
@@ -87,7 +88,8 @@ const roles = [
   {
     slug: "guest",
     name: "Guest",
-    description: "Tamu yang dapat mencari kamar dan mengelola booking miliknya sendiri.",
+    description:
+      "Tamu yang dapat mencari kamar dan mengelola booking miliknya sendiri.",
     permissions: [
       "rooms.browse",
       "bookings.create",
@@ -113,7 +115,8 @@ const roles = [
   {
     slug: "manager",
     name: "Manager",
-    description: "Pengelola tipe kamar, harga, laporan, dan persetujuan refund.",
+    description:
+      "Pengelola tipe kamar, harga, laporan, dan persetujuan refund.",
     permissions: [
       "rooms.browse",
       "bookings.create",
@@ -190,8 +193,4 @@ export function seedRoles(): void {
 
 if (import.meta.main) {
   seedRoles();
-
-  console.log(
-    `Seeded ${roles.length} roles, ${permissions.length} permissions, and ${roles.reduce((total, role) => total + role.permissions.length, 0)} role permissions.`,
-  );
 }

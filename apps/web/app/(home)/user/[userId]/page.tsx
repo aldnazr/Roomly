@@ -23,7 +23,7 @@ import { useRoles } from "@/features/roles/use-roles";
 import { UserCreatePayload } from "@/features/users/types";
 import { useUserCreate } from "@/features/users/use-users";
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, SyntheticEvent } from "react";
+import { SyntheticEvent } from "react";
 
 export default function UserUpdate() {
   const { userId } = useParams<{ userId: string }>();

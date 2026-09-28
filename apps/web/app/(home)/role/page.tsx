@@ -7,8 +7,7 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { useRoles } from "@/features/roles/use-roles";
-import { IconArrowNarrowRight, IconArrowRight } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
+import { IconArrowRight } from "@tabler/icons-react";
 import Link from "next/link";
 
 export default function RolePage() {

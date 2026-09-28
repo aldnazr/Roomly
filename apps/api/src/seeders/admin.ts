@@ -25,10 +25,8 @@ export async function seedAdmin(): Promise<string> {
 }
 
 if (import.meta.main) {
-  seedAdmin()
-    .then((email) => console.log(`Admin user ready: ${email}`))
-    .catch((err) => {
-      console.error(err instanceof Error ? err.message : err);
-      process.exit(1);
-    });
+  seedAdmin().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
 }
