@@ -8,11 +8,12 @@ export const roleKeys = {
   list: () => [...roleKeys.all, "list"] as const,
 };
 
-export const useRoles = () =>
-  useQuery({
+export function useRoles() {
+  return useQuery({
     queryKey: roleKeys.list(),
     queryFn: roleApi.list,
   });
+}
 
 export function useRoleDetail() {
   const [permissionsQuery, rolesQuery] = useQueries({

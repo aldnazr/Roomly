@@ -1,8 +1,8 @@
 export interface UserResponse {
-  data: UserDetail[];
+  data: User[];
 }
 
-export interface UserDetail {
+export interface User {
   id: number;
   username: string;
   name: string;
@@ -11,7 +11,7 @@ export interface UserDetail {
 }
 
 export interface UserDetailResponse {
-  data: UserDetail;
+  data: User;
 }
 
 export interface UserCreatePayload {

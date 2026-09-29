@@ -3,10 +3,10 @@ export interface SetRoleRequest {
 }
 
 export interface RoleResponse {
-  data: RoleResponseDetail[];
+  data: Role[];
 }
 
-export interface RoleResponseDetail {
+export interface Role {
   slug: string;
   name: string;
   description: string;

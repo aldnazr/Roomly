@@ -1,8 +1,8 @@
 export interface PermissionResponse {
-  data: PermissionResponseDetail[];
+  data: Permission[];
 }
 
-export interface PermissionResponseDetail {
+export interface Permission {
   slug: string;
   name: string;
   description: string;

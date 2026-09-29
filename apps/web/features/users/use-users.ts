@@ -8,20 +8,22 @@ export const userKeys = {
   list: () => [...userKeys.all, "list"] as const,
 };
 
-export const useUser = () =>
-  useQuery({
+export function useUser() {
+  return useQuery({
     queryKey: userKeys.list(),
     queryFn: userApi.list,
   });
+}
 
-export const useUserDetail = (id?: string) =>
-  useQuery({
+export function useUserDetail(id?: string) {
+  return useQuery({
     queryKey: userKeys.detail(),
     queryFn: () => userApi.detail(id!),
     enabled: !!id,
   });
+}
 
-export const useUserCreate = () => {
+export function useUserCreate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UserCreatePayload) => userApi.create(payload),
@@ -29,9 +31,9 @@ export const useUserCreate = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },
   });
-};
+}
 
-export const useUserDelete = () => {
+export function useUserDelete() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id }: { id: string }) => userApi.delete(id),
@@ -39,4 +41,4 @@ export const useUserDelete = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
     },
   });
-};
+}
