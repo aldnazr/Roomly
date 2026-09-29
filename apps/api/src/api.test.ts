@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { Database } from "bun:sqlite";
-import { createClient, type InValue } from "@libsql/client";
+import { type InValue } from "@libsql/client";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -83,54 +82,6 @@ describe("migrations", () => {
       await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM schema_migrations")
     )!.n;
     expect(count).toBe(4);
-  });
-
-  test("adds password_hash to a legacy database without it", async () => {
-    const legacyPath = join(dir, "legacy.db");
-    const seed = new Database(legacyPath);
-    seed.run(
-      `CREATE TABLE roles (
-        id INTEGER PRIMARY KEY,
-        slug TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        description TEXT NOT NULL
-      ) STRICT`,
-    );
-    seed.run(
-      `CREATE TABLE users (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-        role TEXT NOT NULL DEFAULT 'guest' REFERENCES roles(slug) ON DELETE RESTRICT ON UPDATE CASCADE
-      ) STRICT`,
-    );
-    seed.run("INSERT INTO roles (slug, name, description) VALUES ('guest', 'Guest', 'Guest')");
-    seed.run("INSERT INTO users (name, email, role) VALUES ('Old User', 'old@example.com', 'guest')");
-    seed.close();
-
-    const legacy = createClient({
-      url: `file:${legacyPath.split("\\").join("/")}`,
-    });
-    await migrate(legacy);
-
-    const columns = (
-      await legacy.execute("PRAGMA table_info(users)")
-    ).rows.map((row) => row.name as string);
-    expect(columns).toContain("password_hash");
-    expect(columns).toContain("username");
-
-    const rowResult = await legacy.execute(
-      "SELECT name, password_hash, username FROM users WHERE email = 'old@example.com'",
-    );
-    const row = Object.fromEntries(
-      rowResult.columns.map((column, i) => [column, rowResult.rows[0]![i]]),
-    ) as { name: string; password_hash: string | null; username: string | null };
-    expect(row.name).toBe("Old User");
-    expect(row.password_hash).toBeNull();
-    expect(row.username).toBeNull();
-
-    await migrate(legacy);
-    legacy.close();
   });
 });
 

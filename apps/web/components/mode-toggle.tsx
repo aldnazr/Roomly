@@ -35,15 +35,15 @@ export function ModeToggle() {
         <DropdownMenuGroup>
           <DropdownMenuLabel>Theme</DropdownMenuLabel>
           <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-            <DropdownMenuRadioItem value={"system"}>
+            <DropdownMenuRadioItem value={"system"} closeOnClick>
               <IconDeviceDesktop />
               System
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value={"light"}>
+            <DropdownMenuRadioItem value={"light"} closeOnClick>
               <IconSun />
               Light
             </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value={"dark"}>
+            <DropdownMenuRadioItem value={"dark"} closeOnClick>
               <IconMoon />
               Dark
             </DropdownMenuRadioItem>
