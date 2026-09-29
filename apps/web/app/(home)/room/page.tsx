@@ -26,17 +26,15 @@ export default function RoomPage() {
         )}
       </div>
 
-      {isLoading ? (
+      {isLoading ?
         <RoomListSkeleton />
-      ) : (
-        <RoomList
+      : <RoomList
           rooms={rooms}
           isError={isError}
           error={error}
           onRetry={() => refetch()}
         />
-      )}
+      }
     </div>
   );
 }
-

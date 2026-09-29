@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { userApi } from "./user-api";
-import { UserCreatePayload } from "./types";
+import { UserCreatePayload, UserUpdatePayload } from "./types";
 
 export const userKeys = {
   all: ["user"] as const,
-  detail: () => [...userKeys.all, "detail"] as const,
+  detail: (id?: string) => [...userKeys.all, "detail", id] as const,
   list: () => [...userKeys.all, "list"] as const,
 };
 
@@ -17,7 +17,7 @@ export function useUser() {
 
 export function useUserDetail(id?: string) {
   return useQuery({
-    queryKey: userKeys.detail(),
+    queryKey: userKeys.detail(id),
     queryFn: () => userApi.detail(id!),
     enabled: !!id,
   });
@@ -29,6 +29,20 @@ export function useUserCreate() {
     mutationFn: (payload: UserCreatePayload) => userApi.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
+    },
+  });
+}
+
+export function useUserUpdate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UserUpdatePayload }) =>
+      userApi.update(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.list() });
+      queryClient.invalidateQueries({
+        queryKey: userKeys.detail(variables.id),
+      });
     },
   });
 }

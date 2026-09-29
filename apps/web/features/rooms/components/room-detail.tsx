@@ -37,7 +37,13 @@ interface RoomDetailProps {
   onRetry?: () => void;
 }
 
-export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDetailProps) {
+export function RoomDetail({
+  room,
+  isLoading,
+  isError,
+  error,
+  onRetry,
+}: RoomDetailProps) {
   if (isLoading) {
     return (
       <div className="space-y-6" role="status" aria-label="Loading room">
@@ -57,15 +63,32 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
   if (isError || !room) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" size="sm" render={<Link href="/room" />}>
+        <Button
+          nativeButton={false}
+          variant="ghost"
+          size="sm"
+          onClick={() => window.history.back()}
+        >
           <IconArrowLeft className="size-4" />
           Back to rooms
         </Button>
-        <div role="alert" className="flex flex-col items-center justify-center rounded-3xl border border-destructive/20 bg-destructive/5 p-10 text-center">
-          <p className="text-base font-semibold text-destructive">Room not found</p>
-          <p className="mt-1 text-xs text-muted-foreground">{error?.message || "Could not load room."}</p>
+        <div
+          role="alert"
+          className="flex flex-col items-center justify-center rounded-3xl border border-destructive/20 bg-destructive/5 p-10 text-center"
+        >
+          <p className="text-base font-semibold text-destructive">
+            Room not found
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {error?.message || "Could not load room."}
+          </p>
           {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry} className="mt-4 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRetry}
+              className="mt-4 gap-2"
+            >
               <IconRotateClockwise className="size-4" />
               Try again
             </Button>
@@ -79,25 +102,37 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" render={<Link href="/room" />}>
+        <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
           <IconArrowLeft className="size-4" />
           Back to rooms
         </Button>
         <span className="text-xs text-muted-foreground">Room #{room.id}</span>
       </div>
 
-      {photos.length > 0 ? (
+      {photos.length > 0 ?
         <div className="overflow-hidden rounded-3xl border border-border/60 bg-muted">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             <div className="relative aspect-16/10 md:col-span-2 md:aspect-auto md:h-80">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photos[0]} alt={room.name} className="h-full w-full object-cover" />
+              <img
+                src={photos[0]}
+                alt={room.name}
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="hidden flex-col gap-2 md:flex">
               {photos.slice(1, 3).map((url, idx) => (
-                <div key={idx} className="relative h-[156px] overflow-hidden bg-muted">
+                <div
+                  key={idx}
+                  className="relative h-39 overflow-hidden bg-muted"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`${room.name} ${idx + 2}`} className="h-full w-full object-cover" loading="lazy" />
+                  <img
+                    src={url}
+                    alt={`${room.name} ${idx + 2}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 </div>
               ))}
               {photos.length <= 1 && (
@@ -108,12 +143,11 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
             </div>
           </div>
         </div>
-      ) : (
-        <div className="flex aspect-21/9 w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border/70 bg-muted/40 text-muted-foreground">
+      : <div className="flex aspect-21/9 w-full flex-col items-center justify-center gap-2 rounded-3xl border border-dashed border-border/70 bg-muted/40 text-muted-foreground">
           <IconPhotoOff className="size-8" />
           <p className="text-xs">No photos uploaded for this room</p>
         </div>
-      )}
+      }
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -135,7 +169,9 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-sm font-semibold text-foreground">About this room</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              About this room
+            </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               {room.description || "No description provided for this room."}
             </p>
@@ -143,10 +179,15 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
 
           {room.amenities && room.amenities.length > 0 && (
             <div className="border-t border-border/60 pt-6">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Amenities</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-3">
+                Amenities
+              </h2>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {room.amenities.map((a) => (
-                  <div key={a} className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 text-xs text-foreground">
+                  <div
+                    key={a}
+                    className="flex items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 text-xs text-foreground"
+                  >
                     <IconCheck className="size-3.5 text-primary shrink-0" />
                     <span className="truncate">{a}</span>
                   </div>
@@ -172,11 +213,15 @@ export function RoomDetail({ room, isLoading, isError, error, onRetry }: RoomDet
               <div className="rounded-2xl border border-border/50 bg-muted/40 p-4 text-xs space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Max Capacity</span>
-                  <span className="font-medium text-foreground">{room.capacity} guests</span>
+                  <span className="font-medium text-foreground">
+                    {room.capacity} guests
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Total Inventory</span>
-                  <span className="font-medium text-foreground">{room.total_rooms} units</span>
+                  <span className="font-medium text-foreground">
+                    {room.total_rooms} units
+                  </span>
                 </div>
               </div>
             </div>

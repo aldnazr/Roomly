@@ -6,6 +6,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
+import { Toaster } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -44,7 +45,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             disableTransitionOnChange
           >
             <TooltipProvider>
-              <SessionProvider>{children}</SessionProvider>
+              <SessionProvider>
+                {children}
+                <Toaster />
+              </SessionProvider>
             </TooltipProvider>
           </ThemeProvider>
         </QueryProvider>

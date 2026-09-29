@@ -20,3 +20,10 @@ export interface UserCreatePayload {
   password: string;
   role: string;
 }
+
+export interface UserUpdatePayload {
+  username?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+}

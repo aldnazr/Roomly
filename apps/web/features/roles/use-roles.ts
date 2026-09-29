@@ -29,5 +29,7 @@ export function useRoleDetail() {
     isLoading: permissionsQuery.isLoading || rolesQuery.isLoading,
     isError: permissionsQuery.isError || rolesQuery.isError,
     error: permissionsQuery.error ?? rolesQuery.error,
+    refetch: () =>
+      Promise.all([permissionsQuery.refetch(), rolesQuery.refetch()]),
   };
 }
