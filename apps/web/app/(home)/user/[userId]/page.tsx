@@ -216,7 +216,7 @@ export default function UserDetailPage() {
               </CardHeader>
 
               <CardContent>
-                <FieldSet className="my-4">
+                <FieldSet className="my-6">
                   <FieldLegend className="sr-only">
                     Detail akun pengguna
                   </FieldLegend>
