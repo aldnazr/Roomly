@@ -354,7 +354,7 @@ export default function UserDetailPage() {
                 <Button
                   type="submit"
                   disabled={isPending || isRoleLoading || isRoleError}
-                  className="w-full transition-[transform] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] sm:w-auto"
+                  className="w-full transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] sm:w-auto"
                 >
                   {isPending ?
                     <IconLoader2

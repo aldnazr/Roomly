@@ -2,11 +2,12 @@ import axios from "axios";
 import { getSession, signOut } from "next-auth/react";
 
 // Server-side calls (next-auth authorize) use the API_URL service binding
-// injected by Vercel; the browser goes through the same-origin /api rewrite.
+// injected by Vercel; NEXT_PUBLIC_API_URL covers local dev. The browser uses
+// same-origin /api so the Vercel rewrite proxies to the API service.
 const baseURL =
   typeof window === "undefined" ?
-    process.env.NEXT_PUBLIC_API_URL
-  : "http://localhost:4000";
+    process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL
+  : process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export const axiosInstance = axios.create({
   baseURL,
