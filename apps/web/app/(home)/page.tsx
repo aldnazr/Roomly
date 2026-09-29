@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRoles } from "@/features/roles/use-roles";
 import { usePermission } from "@/features/permissions/use-permissions";
 
-export default function Home() {
+export default function Page() {
   const { data: session } = useSession();
   const {
     data: rolesData,

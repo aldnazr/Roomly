@@ -4,7 +4,7 @@ import { roomApi } from "./room-api";
 export const roomKeys = {
   all: ["room"] as const,
   list: () => [...roomKeys.all, "list"] as const,
-  detail: () => [...roomKeys.all, "detail"] as const,
+  detail: (id?: string) => [...roomKeys.all, "detail", id] as const,
 };
 
 export function useRoom() {
@@ -16,7 +16,8 @@ export function useRoom() {
 
 export function useRoomDetail(id: string) {
   return useQuery({
-    queryKey: roomKeys.detail(),
+    queryKey: roomKeys.detail(id),
     queryFn: () => roomApi.detail(id),
+    enabled: !!id,
   });
 }

@@ -8,7 +8,12 @@ import {
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import { signOut } from "next-auth/react";
-import { IconDashboard, IconUser, IconUsers } from "@tabler/icons-react";
+import {
+  IconDashboard,
+  IconDoor,
+  IconUser,
+  IconUsers,
+} from "@tabler/icons-react";
 import { NavMain } from "./nav-main";
 import { RoomlyHeader } from "./roomly-header";
 
@@ -18,6 +23,11 @@ export function AppSidebar() {
       title: "Dashboard",
       url: "/",
       icon: IconDashboard,
+    },
+    {
+      title: "Room",
+      url: "/room",
+      icon: IconDoor,
     },
     {
       title: "User",

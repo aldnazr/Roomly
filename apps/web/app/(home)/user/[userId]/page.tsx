@@ -25,7 +25,7 @@ import { useUserCreate } from "@/features/users/use-users";
 import { useParams, useRouter } from "next/navigation";
 import { SyntheticEvent } from "react";
 
-export default function UserUpdate() {
+export default function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const { mutate, isPending } = useUserCreate();
   const { data: listRole } = useRoles();

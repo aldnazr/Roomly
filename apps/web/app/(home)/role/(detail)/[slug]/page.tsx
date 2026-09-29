@@ -9,7 +9,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { PermissionResponseDetail } from "@/features/permissions/types";
+import { Permission } from "@/features/permissions/types";
 import { useSetPermission } from "@/features/permissions/use-permissions";
 import { useRoleDetail } from "@/features/roles/use-roles";
 import { capitalize } from "@/lib/utils";
@@ -17,7 +17,7 @@ import { IconDeviceFloppy, IconRotate } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-export default function RoleDetail() {
+export default function RoleDetailPage() {
   const { slug: roleSlug } = useParams<{ slug: string }>();
   const { roles, permissions, isLoading, error, isError } = useRoleDetail();
   const { mutate, isPending } = useSetPermission(roleSlug);
@@ -33,23 +33,18 @@ export default function RoleDetail() {
 
   interface PermissionGroup {
     group: string;
-    items: PermissionResponseDetail[];
+    items: Permission[];
   }
 
-  function groupedPermission(
-    data: PermissionResponseDetail[],
-  ): PermissionGroup[] {
-    const grouped = data.reduce<Record<string, PermissionResponseDetail[]>>(
-      (acc, item) => {
-        const prefix = item.slug.split(".")[0];
+  function groupedPermission(data: Permission[]): PermissionGroup[] {
+    const grouped = data.reduce<Record<string, Permission[]>>((acc, item) => {
+      const prefix = item.slug.split(".")[0];
 
-        if (!acc[prefix]) acc[prefix] = [];
-        acc[prefix].push(item);
+      if (!acc[prefix]) acc[prefix] = [];
+      acc[prefix].push(item);
 
-        return acc;
-      },
-      {},
-    );
+      return acc;
+    }, {});
 
     return Object.entries(grouped)
       .map(([prefix, items]) => ({
