@@ -44,26 +44,26 @@ function BrandMark() {
 
 export default function LoginPage() {
   const [error, setError] = useState("");
-  const emailRef = useRef<HTMLInputElement>(null);
+  const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    let email = emailRef.current?.value;
-    let password = passwordRef.current?.value;
+    const username = usernameRef.current?.value;
+    const password = passwordRef.current?.value;
 
     setError("");
 
     const result = await signIn("credentials", {
-      email,
+      username,
       password,
       redirect: false,
     });
 
     if (result.error) {
-      setError("Email atau password salah");
+      setError("Username/email atau password salah");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
               Masuk ke akun
             </CardTitle>
             <CardDescription>
-              Gunakan email dan kata sandi yang terdaftar.
+              Gunakan username atau email dan kata sandi yang terdaftar.
             </CardDescription>
           </CardHeader>
 
@@ -125,15 +125,15 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <FieldLabel htmlFor="username">Username atau email</FieldLabel>
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="nama@email.com"
+                    id="username"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="username atau email"
                     className="h-11"
-                    ref={emailRef}
+                    ref={usernameRef}
                     required
                   />
                 </Field>

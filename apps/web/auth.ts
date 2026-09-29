@@ -8,14 +8,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: {},
+        username: {},
         password: {},
       },
 
       async authorize(credentials) {
         try {
           const response = await authApi.login({
-            email: credentials.email as string,
+            username: credentials.username as string,
             password: credentials.password as string,
           });
 

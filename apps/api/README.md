@@ -60,17 +60,20 @@ the configured `ADMIN_EMAIL`. Users without a stored password hash cannot log in
 
 ## Auth
 
-`POST /api/auth/login` with JSON `{ "email": "...", "password": "..." }`.
+`POST /api/auth/login` with JSON `{ "email": "...", "password": "..." }` or
+`{ "username": "...", "password": "..." }` — exactly one of `email`/`username`.
+A username value is matched against both columns, so an email address may also
+be sent in the `username` field.
 
 ```bash
 curl -s http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"..."}'
+  -d '{"username":"admin","password":"..."}'
 ```
 
 - `200` → `{ "data": { "accessToken", "expiresIn": 3600, "user": { "id", "username", "name", "email", "role" } } }`
 - `400` → malformed JSON or invalid fields
-- `401` → identical generic error for unknown email, wrong password, or missing hash
+- `401` → identical generic error for unknown email/username, wrong password, or missing hash
 - `500` → unexpected failure (details only in server logs)
 
 Tokens are HS256 JWTs valid for one hour, carrying `sub` (user id), `role`,

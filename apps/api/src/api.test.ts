@@ -163,6 +163,14 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(200);
   });
 
+  test("logs in with username as identifier", async () => {
+    const res = await login({ username: "admin", password: "rotated-password-456" });
+    expect(res.status).toBe(200);
+
+    const { data } = (await res.json()) as { data: { user: { email: string } } };
+    expect(data.user.email).toBe("admin@example.com");
+  });
+
   test("returns 400 for missing, invalid, or malformed fields", async () => {
     for (const body of [
       {},

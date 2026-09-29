@@ -1,6 +1,10 @@
 import { User } from "../users/types";
 
-export type LoginRequest = { email: string; password: string };
+export type LoginRequest = {
+  email?: string;
+  username?: string;
+  password: string;
+};
 
 export type LoginResponse = {
   data: {

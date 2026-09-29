@@ -12,7 +12,12 @@ const INVALID_CREDENTIALS = "Invalid email or password";
 const dummyHashPromise = bcrypt.hash("timing-equalizer", 12);
 
 export async function login(body: unknown) {
-  const { email, password } = parseLoginBody(body);
+  const parsed = parseLoginBody(body);
+  const { password } = parsed;
+  // Single identifier: an email body matches the email column, a username body
+  // still matches the email column too, so an email typed into a username
+  // field keeps working.
+  const identifier = ("email" in parsed ? parsed.email : parsed.username) ?? "";
 
   const user = await queryOne<{
     id: number;
@@ -22,8 +27,8 @@ export async function login(body: unknown) {
     role: string;
     password_hash: string | null;
   }>(
-    "SELECT id, name, username, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE",
-    [email],
+    "SELECT id, name, username, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE OR username = ? COLLATE NOCASE",
+    [identifier, identifier],
   );
 
   if (!user || !user.password_hash) {
