@@ -19,4 +19,11 @@ export const API_ENDPOINTS = {
     update: (id: string) => `/api/users/${id}`,
     delete: (id: string) => `/api/users/${id}`,
   },
+  room: {
+    list: "/api/room-types",
+    detail: (id: string) => `/api/room-types/${id}`,
+    create: "/api/room-types",
+    update: (id: string) => `/api/room-types/${id}`,
+    delete: (id: string) => `/api/room-types/${id}`,
+  },
 } as const;
