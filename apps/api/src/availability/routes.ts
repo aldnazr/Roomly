@@ -8,10 +8,10 @@ export const availabilityRouter = Router();
 availabilityRouter.use(requireAuth);
 availabilityRouter.use(requirePermission("rooms.browse"));
 
-availabilityRouter.get("/", (req, res, next) => {
+availabilityRouter.get("/", async (req, res, next) => {
   try {
     const query = parseAvailabilityQuery(req.query);
-    const result = searchAvailability(query);
+    const result = await searchAvailability(query);
     res.status(200).json({ data: result });
   } catch (err) {
     next(err);

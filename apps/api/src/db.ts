@@ -1,24 +1,45 @@
-import { Database } from "bun:sqlite";
-import { mkdirSync } from "fs";
-import { dirname, resolve } from "path";
+import { createClient, type Client, type InValue, type ResultSet } from "@libsql/client";
 
-export const databasePath = resolve(
-  process.env.DATABASE_PATH || "data/database.db",
-);
-mkdirSync(dirname(databasePath), { recursive: true });
+const url = process.env.TURSO_DATABASE_URL;
 
-const db = new Database(databasePath, { create: true });
-db.run("PRAGMA journal_mode = WAL;");
-db.run("PRAGMA foreign_keys = ON;");
+if (!url) {
+  throw new Error("Invalid configuration: TURSO_DATABASE_URL must be set");
+}
 
-type Migration = { id: number; name: string; up: (db: Database) => void };
+// Works with both a remote Turso instance (libsql://) and a local file (file:) for tests.
+export const db: Client = createClient({
+  url,
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+
+if (url.startsWith("file:")) {
+  await db.execute("PRAGMA foreign_keys = ON;");
+}
+
+export async function query<T>(sql: string, args: InValue[] = []): Promise<T[]> {
+  const result = await db.execute({ sql, args });
+  return result.rows.map(
+    (row) => Object.fromEntries(result.columns.map((column, i) => [column, row[i]])) as T,
+  );
+}
+
+export async function queryOne<T>(sql: string, args: InValue[] = []): Promise<T | null> {
+  const rows = await query<T>(sql, args);
+  return rows[0] ?? null;
+}
+
+export async function exec(sql: string, args: InValue[] = []): Promise<ResultSet> {
+  return db.execute({ sql, args });
+}
+
+type Migration = { id: number; name: string; up: (db: Client) => Promise<void> };
 
 const migrations: Migration[] = [
   {
     id: 1,
     name: "initial_schema",
     up: (db) => {
-      db.run(`
+      return db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS room_types (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL UNIQUE CHECK(length(trim(name)) > 0),
@@ -182,26 +203,24 @@ const migrations: Migration[] = [
   {
     id: 2,
     name: "users_add_password_hash",
-    up: (db) => {
-      const columns = db
-        .query<{ name: string }, []>("PRAGMA table_info(users)")
-        .all();
-      if (!columns.some((column) => column.name === "password_hash")) {
-        db.run("ALTER TABLE users ADD COLUMN password_hash TEXT");
+    up: async (db) => {
+      const columns = await db.execute("PRAGMA table_info(users)");
+      const names = columns.rows.map((row) => row.name as string);
+      if (!names.includes("password_hash")) {
+        await db.execute("ALTER TABLE users ADD COLUMN password_hash TEXT");
       }
     },
   },
   {
     id: 3,
     name: "users_add_username",
-    up: (db) => {
-      const columns = db
-        .query<{ name: string }, []>("PRAGMA table_info(users)")
-        .all();
-      if (!columns.some((column) => column.name === "username")) {
-        db.run("ALTER TABLE users ADD COLUMN username TEXT");
+    up: async (db) => {
+      const columns = await db.execute("PRAGMA table_info(users)");
+      const names = columns.rows.map((row) => row.name as string);
+      if (!names.includes("username")) {
+        await db.execute("ALTER TABLE users ADD COLUMN username TEXT");
         // ponytail: unique index allows multiple legacy NULLs; API enforces required on write.
-        db.run(
+        await db.execute(
           "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL",
         );
       }
@@ -210,17 +229,16 @@ const migrations: Migration[] = [
   {
     id: 4,
     name: "room_types_add_amenities_photos",
-    up: (db) => {
-      const columns = db
-        .query<{ name: string }, []>("PRAGMA table_info(room_types)")
-        .all();
-      if (!columns.some((column) => column.name === "amenities")) {
-        db.run(
+    up: async (db) => {
+      const columns = await db.execute("PRAGMA table_info(room_types)");
+      const names = columns.rows.map((row) => row.name as string);
+      if (!names.includes("amenities")) {
+        await db.execute(
           "ALTER TABLE room_types ADD COLUMN amenities TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(amenities) AND json_type(amenities) = 'array')",
         );
       }
-      if (!columns.some((column) => column.name === "photos")) {
-        db.run(
+      if (!names.includes("photos")) {
+        await db.execute(
           "ALTER TABLE room_types ADD COLUMN photos TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(photos) AND json_type(photos) = 'array')",
         );
       }
@@ -228,8 +246,8 @@ const migrations: Migration[] = [
   },
 ];
 
-export function migrate(database: Database = db): void {
-  database.run(`
+export async function migrate(database: Client = db): Promise<void> {
+  await database.executeMultiple(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL UNIQUE CHECK(length(trim(name)) > 0),
@@ -240,26 +258,18 @@ export function migrate(database: Database = db): void {
   // ponytail: keyed by name, not id — ids get reused when migrations are
   // renumbered; upsert on id so a stale row from an old numbering is replaced.
   const applied = new Set(
-    database
-      .query<{ name: string }, []>("SELECT name FROM schema_migrations")
-      .all()
-      .map((row) => row.name),
+    (await database.execute("SELECT name FROM schema_migrations")).rows.map(
+      (row) => row.name as string,
+    ),
   );
 
   for (const migration of migrations) {
     if (applied.has(migration.name)) continue;
-    database.transaction(() => {
-      migration.up(database);
-      database
-        .prepare(
-          `INSERT INTO schema_migrations (id, name) VALUES (?, ?)
+    await migration.up(database);
+    await database.execute({
+      sql: `INSERT INTO schema_migrations (id, name) VALUES (?, ?)
            ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
-        )
-        .run(migration.id, migration.name);
-    })();
+      args: [migration.id, migration.name],
+    });
   }
 }
-
-migrate();
-
-export default db;

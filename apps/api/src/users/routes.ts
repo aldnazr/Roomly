@@ -23,13 +23,13 @@ function parseUserId(param: string | undefined): number {
   return id;
 }
 
-usersRouter.get("/", (_req, res) => {
-  res.status(200).json({ data: listUsers() });
+usersRouter.get("/", async (_req, res) => {
+  res.status(200).json({ data: await listUsers() });
 });
 
-usersRouter.get("/:id", (req, res) => {
+usersRouter.get("/:id", async (req, res) => {
   const id = parseUserId(req.params.id);
-  res.status(200).json({ data: getUser(id) });
+  res.status(200).json({ data: await getUser(id) });
 });
 
 usersRouter.post("/", async (req, res, next) => {
@@ -53,7 +53,7 @@ usersRouter.patch("/:id", async (req, res, next) => {
   }
 });
 
-usersRouter.delete("/:id", (req, res) => {
+usersRouter.delete("/:id", async (req, res) => {
   const id = parseUserId(req.params.id);
-  res.status(200).json({ data: deleteUser(id) });
+  res.status(200).json({ data: await deleteUser(id) });
 });

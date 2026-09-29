@@ -17,12 +17,16 @@
     "build": "tsc --noEmit",
     "start": "bun src/index.ts",
     "test": "bun test",
+    "db:migrate": "bun src/scripts/migrate.ts",
     "seed": "bun run seed:roles && bun run seed:admin && bun run seed:rooms",
+    "db:setup": "bun run db:migrate && bun run seed",
     "seed:roles": "bun src/seeders/roles.ts",
     "seed:admin": "bun src/seeders/admin.ts",
     "seed:rooms": "bun src/seeders/rooms.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.4",
     "express": "^5.2.1",

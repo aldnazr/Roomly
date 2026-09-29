@@ -1,4 +1,4 @@
-import db from "../db";
+import { db } from "../db";
 
 const roomTypes = [
   {
@@ -40,7 +40,7 @@ const roomTypes = [
 ] as const;
 
 // ponytail: photos seeded empty; fill with real asset URLs when assets exist.
-const upsertRoomType = db.prepare(`
+const upsertRoomTypeSql = `
   INSERT INTO room_types (name, base_price, capacity, description, amenities, photos)
   VALUES (?, ?, ?, ?, ?, '[]')
   ON CONFLICT(name) DO UPDATE SET
@@ -49,40 +49,50 @@ const upsertRoomType = db.prepare(`
     description = excluded.description,
     amenities = excluded.amenities
   RETURNING id
-`);
+`;
 
-const upsertRoom = db.prepare(`
+const upsertRoomSql = `
   INSERT INTO rooms (room_type_id, room_number)
   VALUES (?, ?)
   ON CONFLICT(room_number) DO UPDATE SET
     room_type_id = excluded.room_type_id
-`);
+`;
 
-export function seedRooms(): number {
+// ponytail: sequential executes instead of one transaction; upserts are idempotent,
+// switch to db.transaction(...) if seeding must be atomic.
+export async function seedRooms(): Promise<number> {
   let seeded = 0;
 
-  db.transaction(() => {
-    for (const roomType of roomTypes) {
-      const row = upsertRoomType.get(
+  for (const roomType of roomTypes) {
+    const result = await db.execute({
+      sql: upsertRoomTypeSql,
+      args: [
         roomType.name,
         roomType.base_price,
         roomType.capacity,
         roomType.description,
         JSON.stringify(roomType.amenities),
-      ) as { id: number };
+      ],
+    });
+    const id = result.rows[0]!.id as number;
 
-      for (let i = 1; i <= roomType.count; i++) {
-        const roomNumber = `${roomType.floor}${String(i).padStart(2, "0")}`;
-        upsertRoom.run(row.id, roomNumber);
-        seeded++;
-      }
+    for (let i = 1; i <= roomType.count; i++) {
+      const roomNumber = `${roomType.floor}${String(i).padStart(2, "0")}`;
+      await db.execute({ sql: upsertRoomSql, args: [id, roomNumber] });
+      seeded++;
     }
-  })();
+  }
 
   return seeded;
 }
 
 if (import.meta.main) {
-  const seeded = seedRooms();
-  console.log(`Seeded ${seeded} rooms across ${roomTypes.length} room types`);
+  seedRooms()
+    .then((seeded) => {
+      console.log(`Seeded ${seeded} rooms across ${roomTypes.length} room types`);
+    })
+    .catch((err) => {
+      console.error(err instanceof Error ? err.message : err);
+      process.exit(1);
+    });
 }

@@ -1,26 +1,34 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
+import { createClient, type InValue } from "@libsql/client";
 import { mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import type { AddressInfo } from "net";
+import bcrypt from "bcryptjs";
 
 const dir = mkdtempSync(join(tmpdir(), "api-test-"));
 
-process.env.DATABASE_PATH = join(dir, "test.db");
+// ponytail: file: URL stays local so tests never hit the network.
+process.env.TURSO_DATABASE_URL = `file:${join(dir, "test.db").split("\\").join("/")}`;
 process.env.JWT_SECRET = "unit-test-secret-0123456789abcdef";
 process.env.ADMIN_NAME = "Admin";
 process.env.ADMIN_USERNAME = "admin";
 process.env.ADMIN_EMAIL = "admin@example.com";
 process.env.ADMIN_PASSWORD = "admin-password-123";
 
-const { default: db, migrate } = await import("./db");
+const { db, migrate, query, queryOne } = await import("./db");
 const { seedRoles } = await import("./seeders/roles");
 const { seedAdmin } = await import("./seeders/admin");
 const { createApp } = await import("./app");
 const { requireJwtSecret } = await import("./config");
 const { jwtVerify } = await import("jose");
 import type { Server } from "node:http";
+
+const insertReturningId = async (sql: string, args: InValue[] = []): Promise<number> => {
+  const result = await db.execute({ sql, args });
+  return result.rows[0]!.id as number;
+};
 
 let server: Server;
 let baseUrl: string;
@@ -33,6 +41,7 @@ const login = (body: unknown, contentType = "application/json") =>
   });
 
 beforeAll(async () => {
+  await migrate();
   await seedAdmin();
   server = createApp().listen(0);
   baseUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -49,37 +58,34 @@ afterAll(() => {
 });
 
 describe("migrations", () => {
-  test("applies all migrations on a fresh database", () => {
-    const applied = db
-      .query<{ id: number }, []>("SELECT id FROM schema_migrations ORDER BY id ASC")
-      .all()
-      .map((row) => row.id);
+  test("applies all migrations on a fresh database", async () => {
+    const applied = (
+      await query<{ id: number }>("SELECT id FROM schema_migrations ORDER BY id ASC")
+    ).map((row) => row.id);
     expect(applied).toEqual([1, 2, 3, 4]);
 
-    const columns = db
-      .query<{ name: string }, []>("PRAGMA table_info(users)")
-      .all()
-      .map((column) => column.name);
+    const columns = (
+      await query<{ name: string }>("PRAGMA table_info(users)")
+    ).map((column) => column.name);
     expect(columns).toContain("password_hash");
     expect(columns).toContain("username");
 
-    const roomTypeCols = db
-      .query<{ name: string }, []>("PRAGMA table_info(room_types)")
-      .all()
-      .map((column) => column.name);
+    const roomTypeCols = (
+      await query<{ name: string }>("PRAGMA table_info(room_types)")
+    ).map((column) => column.name);
     expect(roomTypeCols).toContain("amenities");
     expect(roomTypeCols).toContain("photos");
   });
 
-  test("is idempotent on rerun", () => {
-    migrate();
-    const count = db
-      .query<{ n: number }, []>("SELECT COUNT(*) AS n FROM schema_migrations")
-      .get()!.n;
+  test("is idempotent on rerun", async () => {
+    await migrate();
+    const count = (
+      await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM schema_migrations")
+    )!.n;
     expect(count).toBe(4);
   });
 
-  test("adds password_hash to a legacy database without it", () => {
+  test("adds password_hash to a legacy database without it", async () => {
     const legacyPath = join(dir, "legacy.db");
     const seed = new Database(legacyPath);
     seed.run(
@@ -102,63 +108,59 @@ describe("migrations", () => {
     seed.run("INSERT INTO users (name, email, role) VALUES ('Old User', 'old@example.com', 'guest')");
     seed.close();
 
-    const legacy = new Database(legacyPath);
-    migrate(legacy);
+    const legacy = createClient({
+      url: `file:${legacyPath.split("\\").join("/")}`,
+    });
+    await migrate(legacy);
 
-    const columns = legacy
-      .query<{ name: string }, []>("PRAGMA table_info(users)")
-      .all()
-      .map((column) => column.name);
+    const columns = (
+      await legacy.execute("PRAGMA table_info(users)")
+    ).rows.map((row) => row.name as string);
     expect(columns).toContain("password_hash");
     expect(columns).toContain("username");
 
-    const row = legacy
-      .query<{ name: string; password_hash: string | null; username: string | null }, []>(
-        "SELECT name, password_hash, username FROM users WHERE email = 'old@example.com'",
-      )
-      .get();
-    expect(row?.name).toBe("Old User");
-    expect(row?.password_hash).toBeNull();
-    expect(row?.username).toBeNull();
+    const rowResult = await legacy.execute(
+      "SELECT name, password_hash, username FROM users WHERE email = 'old@example.com'",
+    );
+    const row = Object.fromEntries(
+      rowResult.columns.map((column, i) => [column, rowResult.rows[0]![i]]),
+    ) as { name: string; password_hash: string | null; username: string | null };
+    expect(row.name).toBe("Old User");
+    expect(row.password_hash).toBeNull();
+    expect(row.username).toBeNull();
 
-    migrate(legacy);
+    await migrate(legacy);
     legacy.close();
   });
 });
 
 describe("admin seeder", () => {
-  test("creates exactly one admin with a stored hash, not plaintext", () => {
-    const admins = db
-      .query<{ id: number; role: string; password_hash: string }, []>(
-        "SELECT id, role, password_hash FROM users WHERE email = 'admin@example.com'",
-      )
-      .all();
+  test("creates exactly one admin with a stored hash, not plaintext", async () => {
+    const admins = await query<{ id: number; role: string; password_hash: string }>(
+      "SELECT id, role, password_hash FROM users WHERE email = 'admin@example.com'",
+    );
     expect(admins.length).toBe(1);
     expect(admins[0]!.role).toBe("admin");
     expect(admins[0]!.password_hash).not.toBe("admin-password-123");
   });
 
   test("rotates credentials on rerun and stays idempotent", async () => {
-    const before = db
-      .query<{ password_hash: string }, []>(
+    const before = (
+      await queryOne<{ password_hash: string }>(
         "SELECT password_hash FROM users WHERE email = 'admin@example.com'",
       )
-      .get()!.password_hash;
+    )!.password_hash;
 
     process.env.ADMIN_PASSWORD = "rotated-password-456";
     await seedAdmin();
     process.env.ADMIN_PASSWORD = "admin-password-123";
 
-    const rows = db
-      .query<{ password_hash: string }, []>(
-        "SELECT password_hash FROM users WHERE email = 'admin@example.com'",
-      )
-      .all();
+    const rows = await query<{ password_hash: string }>(
+      "SELECT password_hash FROM users WHERE email = 'admin@example.com'",
+    );
     expect(rows.length).toBe(1);
     expect(rows[0]!.password_hash).not.toBe(before);
-    expect(
-      await Bun.password.verify("rotated-password-456", rows[0]!.password_hash),
-    ).toBeTrue();
+    expect(await bcrypt.compare("rotated-password-456", rows[0]!.password_hash)).toBeTrue();
   });
 });
 
@@ -229,7 +231,7 @@ describe("POST /api/auth/login", () => {
   });
 
   test("returns identical 401 bodies for unknown email, wrong password, and missing hash", async () => {
-    db.run(
+    await db.execute(
       "INSERT INTO users (name, email, role) VALUES ('No Hash', 'nohash@example.com', 'guest')",
     );
 
@@ -345,9 +347,10 @@ describe("roles API", () => {
     const admin = await login({ email: "admin@example.com", password: "rotated-password-456" });
     adminToken = ((await admin.json()) as { data: { accessToken: string } }).data.accessToken;
 
-    db.prepare(
-      "INSERT INTO users (name, email, role, password_hash) VALUES ('Guest', 'guest@example.com', 'guest', ?)",
-    ).run(await Bun.password.hash("guest-password-123"));
+    await db.execute({
+      sql: "INSERT INTO users (name, email, role, password_hash) VALUES ('Guest', 'guest@example.com', 'guest', ?)",
+      args: [await bcrypt.hash("guest-password-123", 12)],
+    });
     const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
     guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
   });
@@ -757,12 +760,15 @@ describe("room-types API", () => {
     const created = await post("", { name: "Guarded Suite", capacity: 2, base_price: 600000 }, adminToken);
     const { id } = ((await created.json()) as { data: { id: number } }).data;
 
-    db.prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'G-101', 'available')").run(id);
+    await db.execute({
+      sql: "INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'G-101', 'available')",
+      args: [id],
+    });
 
     const delGuarded = await del(`/${id}`, adminToken);
     expect(delGuarded.status).toBe(409);
 
-    db.prepare("DELETE FROM rooms WHERE room_number = 'G-101'").run();
+    await db.execute("DELETE FROM rooms WHERE room_number = 'G-101'");
 
     const delSuccess = await del(`/${id}`, adminToken);
     expect(delSuccess.status).toBe(200);
@@ -788,31 +794,28 @@ describe("availability API", () => {
     const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
     guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
 
-    const rt = db
-      .prepare(
-        "INSERT INTO room_types (name, base_price, capacity, description, amenities, photos) VALUES ('Avail Suite', 500000, 2, 'Test', '[]', '[]') RETURNING id",
-      )
-      .get() as { id: number };
-    roomTypeId = rt.id;
-
-    const r1 = db
-      .prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-101', 'available') RETURNING id")
-      .get(roomTypeId) as { id: number };
-    room1Id = r1.id;
-
-    const r2 = db
-      .prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-102', 'available') RETURNING id")
-      .get(roomTypeId) as { id: number };
-    room2Id = r2.id;
-
-    db.prepare("INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-103', 'maintenance')").run(
-      roomTypeId,
+    roomTypeId = await insertReturningId(
+      "INSERT INTO room_types (name, base_price, capacity, description, amenities, photos) VALUES ('Avail Suite', 500000, 2, 'Test', '[]', '[]') RETURNING id",
     );
 
-    const g = db
-      .prepare("INSERT INTO guests (name, email, phone) VALUES ('Avail Guest', 'guest@avail.test', '12345') RETURNING id")
-      .get() as { id: number };
-    guestId = g.id;
+    room1Id = await insertReturningId(
+      "INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-101', 'available') RETURNING id",
+      [roomTypeId],
+    );
+
+    room2Id = await insertReturningId(
+      "INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-102', 'available') RETURNING id",
+      [roomTypeId],
+    );
+
+    await db.execute({
+      sql: "INSERT INTO rooms (room_type_id, room_number, status) VALUES (?, 'AV-103', 'maintenance')",
+      args: [roomTypeId],
+    });
+
+    guestId = await insertReturningId(
+      "INSERT INTO guests (name, email, phone) VALUES ('Avail Guest', 'guest@avail.test', '12345') RETURNING id",
+    );
   });
 
   test("validates query parameters", async () => {
@@ -863,13 +866,15 @@ describe("availability API", () => {
   });
 
   test("applies pricing rules with override and multiplier", async () => {
-    db.prepare(
-      "INSERT INTO pricing_rules (room_type_id, start_date, end_date, multiplier) VALUES (?, '2026-11-15', '2026-11-15', 1.2)",
-    ).run(roomTypeId);
+    await db.execute({
+      sql: "INSERT INTO pricing_rules (room_type_id, start_date, end_date, multiplier) VALUES (?, '2026-11-15', '2026-11-15', 1.2)",
+      args: [roomTypeId],
+    });
 
-    db.prepare(
-      "INSERT INTO pricing_rules (room_type_id, start_date, end_date, price_override) VALUES (?, '2026-11-16', '2026-11-16', 750000)",
-    ).run(roomTypeId);
+    await db.execute({
+      sql: "INSERT INTO pricing_rules (room_type_id, start_date, end_date, price_override) VALUES (?, '2026-11-16', '2026-11-16', 750000)",
+      args: [roomTypeId],
+    });
 
     const res = await get("?check_in=2026-11-15&check_out=2026-11-17&guests=2", guestToken);
     expect(res.status).toBe(200);
@@ -895,10 +900,11 @@ describe("availability API", () => {
   });
 
   test("decrements availability with reservations and unblocks on checkout day", async () => {
-    db.prepare(
-      `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
+    await db.execute({
+      sql: `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
        VALUES (?, ?, ?, '2026-11-20', '2026-11-22', 'confirmed', 1000000)`,
-    ).run(guestId, roomTypeId, room1Id);
+      args: [guestId, roomTypeId, room1Id],
+    });
 
     const overlapping = await get("?check_in=2026-11-20&check_out=2026-11-22&guests=2", guestToken);
     const overJson = (await overlapping.json()) as {
@@ -914,10 +920,11 @@ describe("availability API", () => {
     const coTarget = coJson.data.results.find((r) => r.room_type.id === roomTypeId)!;
     expect(coTarget.available_rooms).toBe(2);
 
-    db.prepare(
-      `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
+    await db.execute({
+      sql: `INSERT INTO reservations (guest_id, room_type_id, room_id, check_in, check_out, status, total_price)
        VALUES (?, ?, ?, '2026-11-20', '2026-11-22', 'confirmed', 1000000)`,
-    ).run(guestId, roomTypeId, room2Id);
+      args: [guestId, roomTypeId, room2Id],
+    });
 
     const fullHouse = await get("?check_in=2026-11-20&check_out=2026-11-22&guests=2", guestToken);
     const fullJson = (await fullHouse.json()) as {

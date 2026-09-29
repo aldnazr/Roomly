@@ -27,42 +27,42 @@ function parseRoomTypeId(param: string | string[] | undefined): number {
   return id;
 }
 
-roomTypesRouter.get("/", requirePermission("rooms.browse"), (req, res, next) => {
+roomTypesRouter.get("/", requirePermission("rooms.browse"), async (req, res, next) => {
   try {
     const query = parseQueryRoomType(req.query);
-    res.status(200).json({ data: listRoomTypes(query) });
+    res.status(200).json({ data: await listRoomTypes(query) });
   } catch (err) {
     next(err);
   }
 });
 
-roomTypesRouter.get("/:id", requirePermission("rooms.browse"), (req, res) => {
+roomTypesRouter.get("/:id", requirePermission("rooms.browse"), async (req, res) => {
   const id = parseRoomTypeId(req.params.id);
-  res.status(200).json({ data: getRoomType(id) });
+  res.status(200).json({ data: await getRoomType(id) });
 });
 
-roomTypesRouter.post("/", requirePermission("room_types.manage"), (req, res, next) => {
+roomTypesRouter.post("/", requirePermission("room_types.manage"), async (req, res, next) => {
   try {
     const input = parseCreateRoomTypeBody(req.body);
-    const roomType = createRoomType(input);
+    const roomType = await createRoomType(input);
     res.status(201).json({ data: roomType });
   } catch (err) {
     next(err);
   }
 });
 
-roomTypesRouter.patch("/:id", requirePermission("room_types.manage"), (req, res, next) => {
+roomTypesRouter.patch("/:id", requirePermission("room_types.manage"), async (req, res, next) => {
   try {
     const id = parseRoomTypeId(req.params.id);
     const input = parseUpdateRoomTypeBody(req.body);
-    const roomType = updateRoomType(id, input);
+    const roomType = await updateRoomType(id, input);
     res.status(200).json({ data: roomType });
   } catch (err) {
     next(err);
   }
 });
 
-roomTypesRouter.delete("/:id", requirePermission("room_types.manage"), (req, res) => {
+roomTypesRouter.delete("/:id", requirePermission("room_types.manage"), async (req, res) => {
   const id = parseRoomTypeId(req.params.id);
-  res.status(200).json({ data: deleteRoomType(id) });
+  res.status(200).json({ data: await deleteRoomType(id) });
 });

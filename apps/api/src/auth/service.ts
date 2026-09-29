@@ -1,5 +1,6 @@
 import { SignJWT } from "jose";
-import db from "../db";
+import bcrypt from "bcryptjs";
+import { queryOne } from "../db";
 import { requireJwtSecret } from "../config";
 import { HttpError } from "../errors";
 import { parseLoginBody } from "./schema";
@@ -8,33 +9,29 @@ const TOKEN_TTL_SECONDS = 3600;
 const INVALID_CREDENTIALS = "Invalid email or password";
 
 // Precomputed so unknown-email logins cost the same as wrong-password logins.
-const dummyHashPromise = Bun.password.hash("timing-equalizer");
+const dummyHashPromise = bcrypt.hash("timing-equalizer", 12);
 
 export async function login(body: unknown) {
   const { email, password } = parseLoginBody(body);
 
-  const user = db
-    .query<
-      {
-        id: number;
-        name: string;
-        username: string;
-        email: string;
-        role: string;
-        password_hash: string | null;
-      },
-      [string]
-    >(
-      "SELECT id, name, username, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE",
-    )
-    .get(email);
+  const user = await queryOne<{
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    role: string;
+    password_hash: string | null;
+  }>(
+    "SELECT id, name, username, email, role, password_hash FROM users WHERE email = ? COLLATE NOCASE",
+    [email],
+  );
 
   if (!user || !user.password_hash) {
-    await Bun.password.verify(password, await dummyHashPromise);
+    await bcrypt.compare(password, await dummyHashPromise);
     throw new HttpError(401, INVALID_CREDENTIALS);
   }
 
-  const valid = await Bun.password.verify(password, user.password_hash);
+  const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) throw new HttpError(401, INVALID_CREDENTIALS);
 
   const secret = new TextEncoder().encode(requireJwtSecret());

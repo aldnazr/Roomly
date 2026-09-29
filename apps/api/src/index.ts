@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { requireJwtSecret } from "./config";
 import { createApp } from "./app";
-import "./db";
+import { migrate } from "./db";
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 if (!Number.isInteger(port) || port < 0 || port > 65535) {
@@ -17,5 +17,8 @@ try {
   console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 }
+
+// Runs before the server starts listening; migrations are idempotent.
+await migrate();
 
 createApp().listen(port);

@@ -1,4 +1,4 @@
-import db from "../db";
+import { db } from "../db";
 
 const permissions = [
   {
@@ -141,56 +141,60 @@ const roles = [
   },
 ] as const;
 
-const upsertPermission = db.prepare(`
+const upsertPermissionSql = `
   INSERT INTO permissions (slug, name, description)
   VALUES (?, ?, ?)
   ON CONFLICT(slug) DO UPDATE SET
     name = excluded.name,
     description = excluded.description
-`);
+`;
 
-const upsertRole = db.prepare(`
+const upsertRoleSql = `
   INSERT INTO roles (slug, name, description)
   VALUES (?, ?, ?)
   ON CONFLICT(slug) DO UPDATE SET
     name = excluded.name,
     description = excluded.description
-`);
+`;
 
-const deleteRolePermissions = db.prepare(`
+const deleteRolePermissionsSql = `
   DELETE FROM role_permissions
   WHERE role_id = (SELECT id FROM roles WHERE slug = ?)
-`);
+`;
 
-const insertRolePermission = db.prepare(`
+const insertRolePermissionSql = `
   INSERT INTO role_permissions (role_id, permission_id)
   SELECT roles.id, permissions.id
   FROM roles, permissions
   WHERE roles.slug = ?
     AND permissions.slug = ?
-`);
+`;
 
-export function seedRoles(): void {
-  db.transaction(() => {
-    for (const permission of permissions) {
-      upsertPermission.run(
-        permission.slug,
-        permission.name,
-        permission.description,
-      );
+export async function seedRoles(): Promise<void> {
+  const stmts: Array<{ sql: string; args: unknown[] }> = [];
+
+  for (const permission of permissions) {
+    stmts.push({
+      sql: upsertPermissionSql,
+      args: [permission.slug, permission.name, permission.description],
+    });
+  }
+
+  for (const role of roles) {
+    stmts.push({ sql: upsertRoleSql, args: [role.slug, role.name, role.description] });
+    stmts.push({ sql: deleteRolePermissionsSql, args: [role.slug] });
+
+    for (const permissionSlug of role.permissions) {
+      stmts.push({ sql: insertRolePermissionSql, args: [role.slug, permissionSlug] });
     }
+  }
 
-    for (const role of roles) {
-      upsertRole.run(role.slug, role.name, role.description);
-      deleteRolePermissions.run(role.slug);
-
-      for (const permissionSlug of role.permissions) {
-        insertRolePermission.run(role.slug, permissionSlug);
-      }
-    }
-  })();
+  await db.batch(stmts as never, "write");
 }
 
 if (import.meta.main) {
-  seedRoles();
+  seedRoles().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
 }

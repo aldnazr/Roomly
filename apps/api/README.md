@@ -1,6 +1,6 @@
 # API
 
-Express + SQLite (via Bun) API for the room booking app.
+Express + Turso (libSQL) API for the room booking app.
 
 ## Setup
 
@@ -11,8 +11,8 @@ cp .env.example .env   # then fill in the values
 
 Required environment variables (see `.env.example`):
 
-- `PORT` – HTTP port (default `4000`)
-- `DATABASE_PATH` – SQLite file location (default `data/database.db`)
+- `TURSO_DATABASE_URL` – `libsql://...` for Turso Cloud or `file:...` for a local database
+- `TURSO_AUTH_TOKEN` – Turso auth token (not needed for `file:` databases)
 - `JWT_SECRET` – signing secret for access tokens, at least 32 characters
 - `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` – used by the admin seeder
 
@@ -25,6 +25,21 @@ bun run build   # type-check
 ```
 
 Migrations run automatically on startup (tracked in `schema_migrations`).
+
+## Database
+
+```bash
+bun run db:migrate  # apply pending migrations to TURSO_DATABASE_URL
+bun run seed        # roles, admin, then rooms
+bun run db:setup    # migrate + seed (idempotent, safe to rerun)
+```
+
+## Deploy (Vercel)
+
+Create a Vercel project with Root Directory `apps/api` (Express is detected
+automatically) and set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `JWT_SECRET`,
+and `CLIENT_ORIGIN` in the project environment variables. Data persists in
+Turso, so redeployments do not reset anything.
 
 ## Seed
 

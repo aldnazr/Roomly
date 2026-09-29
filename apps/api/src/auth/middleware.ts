@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { jwtVerify } from "jose";
 import { requireJwtSecret } from "../config";
-import db from "../db";
+import { queryOne } from "../db";
 import { HttpError } from "../errors";
 
 export type AuthUser = { id: number; role: string };
@@ -42,23 +42,26 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
 };
 
 export function requirePermission(slug: string): RequestHandler {
-  return (req, _res, next) => {
+  return async (req, _res, next) => {
     if (!req.user) {
       next(new HttpError(401, INVALID_TOKEN));
       return;
     }
 
-    const granted = db
-      .query<{ granted: number }, [string, string]>(
+    try {
+      const granted = await queryOne<{ granted: number }>(
         `SELECT 1 AS granted
          FROM role_permissions rp
          JOIN roles r ON r.id = rp.role_id
          JOIN permissions p ON p.id = rp.permission_id
          WHERE r.slug = ? AND p.slug = ?`,
-      )
-      .get(req.user.role, slug);
+        [req.user.role, slug],
+      );
 
-    if (granted) next();
-    else next(new HttpError(403, "Insufficient permissions"));
+      if (granted) next();
+      else next(new HttpError(403, "Insufficient permissions"));
+    } catch (err) {
+      next(err);
+    }
   };
 }

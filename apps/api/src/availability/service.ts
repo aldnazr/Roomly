@@ -1,4 +1,4 @@
-import db from "../db";
+import { db, query as queryAll } from "../db";
 import type { RoomTypeDto } from "../room-types/service";
 import type { AvailabilityQueryInput } from "./schema";
 
@@ -61,39 +61,39 @@ function getDatesInRange(startDate: string, endDate: string): string[] {
   return dates;
 }
 
-export function searchAvailability(
+// ponytail: several sequential queries per room type against the remote DB; if
+// latency becomes a problem, collapse them into fewer JOINed queries.
+export async function searchAvailability(
   query: AvailabilityQueryInput,
-): AvailabilityResponseDto {
+): Promise<AvailabilityResponseDto> {
   const dates = getDatesInRange(query.check_in, query.check_out);
   const nights = dates.length;
 
-  const roomTypes = db
-    .query<DbRoomTypeRow, [number]>(
-      `SELECT
-        rt.id,
-        rt.name,
-        rt.base_price,
-        rt.capacity,
-        rt.description,
-        rt.amenities,
-        rt.photos,
-        COUNT(r.id) AS total_rooms
-      FROM room_types rt
-      LEFT JOIN rooms r ON r.room_type_id = rt.id
-      WHERE rt.capacity >= ?
-      GROUP BY rt.id
-      ORDER BY rt.base_price ASC, rt.id ASC`,
-    )
-    .all(query.guests);
+  const roomTypes = await queryAll<DbRoomTypeRow>(
+    `SELECT
+      rt.id,
+      rt.name,
+      rt.base_price,
+      rt.capacity,
+      rt.description,
+      rt.amenities,
+      rt.photos,
+      COUNT(r.id) AS total_rooms
+    FROM room_types rt
+    LEFT JOIN rooms r ON r.room_type_id = rt.id
+    WHERE rt.capacity >= ?
+    GROUP BY rt.id
+    ORDER BY rt.base_price ASC, rt.id ASC`,
+    [query.guests],
+  );
 
   const results: AvailableRoomTypeResult[] = [];
 
   for (const rt of roomTypes) {
-    const operableRooms = db
-      .query<{ id: number }, [number]>(
-        "SELECT id FROM rooms WHERE room_type_id = ? AND status <> 'maintenance'",
-      )
-      .all(rt.id);
+    const operableRooms = await queryAll<{ id: number }>(
+      "SELECT id FROM rooms WHERE room_type_id = ? AND status <> 'maintenance'",
+      [rt.id],
+    );
 
     const operableRoomIds = new Set(operableRooms.map((r) => r.id));
     const totalOperable = operableRoomIds.size;
@@ -102,16 +102,15 @@ export function searchAvailability(
       continue;
     }
 
-    const reservations = db
-      .query<DbReservationRow, [number, string, string]>(
-        `SELECT id, room_id, check_in, check_out
-         FROM reservations
-         WHERE room_type_id = ?
-           AND status IN ('pending', 'confirmed', 'checked_in')
-           AND check_in < ?
-           AND check_out > ?`,
-      )
-      .all(rt.id, query.check_out, query.check_in);
+    const reservations = await queryAll<DbReservationRow>(
+      `SELECT id, room_id, check_in, check_out
+       FROM reservations
+       WHERE room_type_id = ?
+         AND status IN ('pending', 'confirmed', 'checked_in')
+         AND check_in < ?
+         AND check_out > ?`,
+      [rt.id, query.check_out, query.check_in],
+    );
 
     let minAvailable = totalOperable;
 
@@ -150,16 +149,15 @@ export function searchAvailability(
       continue;
     }
 
-    const pricingRules = db
-      .query<DbPricingRuleRow, [number, string, string]>(
-        `SELECT start_date, end_date, price_override, multiplier
-         FROM pricing_rules
-         WHERE room_type_id = ?
-           AND start_date < ?
-           AND end_date >= ?
-         ORDER BY start_date ASC`,
-      )
-      .all(rt.id, query.check_out, query.check_in);
+    const pricingRules = await queryAll<DbPricingRuleRow>(
+      `SELECT start_date, end_date, price_override, multiplier
+       FROM pricing_rules
+       WHERE room_type_id = ?
+         AND start_date < ?
+         AND end_date >= ?
+       ORDER BY start_date ASC`,
+      [rt.id, query.check_out, query.check_in],
+    );
 
     const nightly: NightlyPrice[] = dates.map((date) => {
       const activeRule = pricingRules.find(
