@@ -10,6 +10,10 @@ export interface UserDetail {
   role: string;
 }
 
+export interface UserDetailResponse {
+  data: UserDetail;
+}
+
 export interface UserCreatePayload {
   username: string;
   email: string;

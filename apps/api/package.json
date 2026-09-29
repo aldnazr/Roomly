@@ -17,9 +17,10 @@
     "build": "tsc --noEmit",
     "start": "bun src/index.ts",
     "test": "bun test",
-    "seed": "bun run seed:roles && bun run seed:admin",
+    "seed": "bun run seed:roles && bun run seed:admin && bun run seed:rooms",
     "seed:roles": "bun src/seeders/roles.ts",
-    "seed:admin": "bun src/seeders/admin.ts"
+    "seed:admin": "bun src/seeders/admin.ts",
+    "seed:rooms": "bun src/seeders/rooms.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",

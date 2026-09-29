@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   },
   user: {
     list: "/api/users",
+    detail: (id: string) => `/api/users/${id}`,
     create: "/api/users",
     update: (id: string) => `/api/users/${id}`,
     delete: (id: string) => `/api/users/${id}`,

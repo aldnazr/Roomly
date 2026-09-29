@@ -4,14 +4,21 @@ import { UserCreatePayload } from "./types";
 
 export const userKeys = {
   all: ["user"] as const,
+  detail: () => [...userKeys.all, "detail"] as const,
   list: () => [...userKeys.all, "list"] as const,
-  delete: () => [...userKeys.all, "delete"] as const,
 };
 
 export const useUser = () =>
   useQuery({
     queryKey: userKeys.list(),
     queryFn: userApi.list,
+  });
+
+export const useUserDetail = (id?: string) =>
+  useQuery({
+    queryKey: userKeys.detail(),
+    queryFn: () => userApi.detail(id!),
+    enabled: !!id,
   });
 
 export const useUserCreate = () => {
@@ -27,7 +34,6 @@ export const useUserCreate = () => {
 export const useUserDelete = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: userKeys.delete(),
     mutationFn: ({ id }: { id: string }) => userApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.list() });

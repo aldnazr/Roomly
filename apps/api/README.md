@@ -29,10 +29,16 @@ Migrations run automatically on startup (tracked in `schema_migrations`).
 ## Seed
 
 ```bash
-bun run seed          # roles, then admin
+bun run seed          # roles, admin, then rooms
 bun run seed:roles    # roles and permissions only
 bun run seed:admin    # admin user from ADMIN_* env vars
+bun run seed:rooms    # room types (Standard, Deluxe, Family, Suite) + their rooms
 ```
+
+The rooms seeder is idempotent: room types upsert by name, rooms upsert by
+`room_number` (existing `status` values are preserved). Room numbers follow the
+floor-based pattern `101`–`106` (Standard), `201`–`205` (Deluxe),
+`301`–`304` (Family), `401`–`403` (Suite).
 
 The admin seeder is idempotent: rerunning rotates the admin name/password/role for
 the configured `ADMIN_EMAIL`. Users without a stored password hash cannot log in.

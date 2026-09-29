@@ -1,10 +1,18 @@
 import { API_ENDPOINTS } from "@/lib/api/api-endpoints";
 import { axiosInstance } from "@/lib/api/axios-instance";
-import { UserCreatePayload, UserResponse } from "./types";
+import {
+  UserCreatePayload,
+  UserDetail,
+  UserDetailResponse,
+  UserResponse,
+} from "./types";
 
 export const userApi = {
   list: async () =>
     (await axiosInstance.get<UserResponse>(API_ENDPOINTS.user.list)).data,
+  detail: async (id: string) =>
+    (await axiosInstance.get<UserDetailResponse>(API_ENDPOINTS.user.detail(id)))
+      .data.data,
   create: async (payload: UserCreatePayload) =>
     await axiosInstance.post(API_ENDPOINTS.user.create, payload),
   update: async (id: string) =>

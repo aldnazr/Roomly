@@ -26,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type NavUserProps = {
   user?: string | null;
@@ -36,6 +37,7 @@ type NavUserProps = {
 export function NavUser({ user, avatar, logout }: NavUserProps) {
   const { data } = useSession();
   const { isMobile } = useSidebar();
+  const router = useRouter();
 
   return (
     <SidebarMenu>
@@ -75,7 +77,7 @@ export function NavUser({ user, avatar, logout }: NavUserProps) {
             sideOffset={4}
           >
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <IconUserCircle />
                 Account
               </DropdownMenuItem>

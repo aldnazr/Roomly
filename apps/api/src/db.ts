@@ -237,19 +237,24 @@ export function migrate(database: Database = db): void {
     ) STRICT;
   `);
 
+  // ponytail: keyed by name, not id — ids get reused when migrations are
+  // renumbered; upsert on id so a stale row from an old numbering is replaced.
   const applied = new Set(
     database
-      .query<{ id: number }, []>("SELECT id FROM schema_migrations")
+      .query<{ name: string }, []>("SELECT name FROM schema_migrations")
       .all()
-      .map((row) => row.id),
+      .map((row) => row.name),
   );
 
   for (const migration of migrations) {
-    if (applied.has(migration.id)) continue;
+    if (applied.has(migration.name)) continue;
     database.transaction(() => {
       migration.up(database);
       database
-        .prepare("INSERT INTO schema_migrations (id, name) VALUES (?, ?)")
+        .prepare(
+          `INSERT INTO schema_migrations (id, name) VALUES (?, ?)
+           ON CONFLICT(id) DO UPDATE SET name = excluded.name`,
+        )
         .run(migration.id, migration.name);
     })();
   }
