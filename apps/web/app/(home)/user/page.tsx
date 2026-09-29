@@ -51,7 +51,7 @@ export default function UserPage() {
             size="lg"
             render={<Link href="/user/create" />}
             nativeButton={false}
-            className="w-full transition-[transform] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] md:w-auto"
+            className="w-full transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] md:w-auto"
           >
             <IconUserPlus
               data-icon="inline-start"

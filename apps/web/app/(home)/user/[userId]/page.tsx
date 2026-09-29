@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/toast";
 import { useRoles } from "@/features/roles/use-roles";
 import { UserCreatePayload, UserUpdatePayload } from "@/features/users/types";
 import {
@@ -95,12 +96,21 @@ export default function UserDetailPage() {
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     const role = String(formData.get("role"));
-    const onSuccess = () => router.push("/user");
+    const onSuccess = () => window.history.back();
 
     if (isEditing) {
       const payload: UserUpdatePayload = { username, email, role };
       if (password) payload.password = password;
-      updateUser.mutate({ id: userId, payload }, { onSuccess });
+
+      toast.promise(
+        updateUser.mutateAsync({ id: userId, payload }, { onSuccess }),
+        {
+          loading: "Updating user…",
+          success: `${username} updated.`,
+          error: "Could not update user.",
+        },
+      );
+
       return;
     }
 
@@ -124,7 +134,7 @@ export default function UserDetailPage() {
             <IconRefresh data-icon="inline-start" aria-hidden="true" />
             Coba lagi
           </Button>
-          <Button render={<Link href="/user" />} nativeButton={false}>
+          <Button onClick={() => window.history.back()} nativeButton={false}>
             <IconArrowLeft data-icon="inline-start" aria-hidden="true" />
             Kembali
           </Button>
@@ -206,7 +216,7 @@ export default function UserDetailPage() {
               </CardHeader>
 
               <CardContent>
-                <FieldSet>
+                <FieldSet className="my-4">
                   <FieldLegend className="sr-only">
                     Detail akun pengguna
                   </FieldLegend>

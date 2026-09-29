@@ -16,7 +16,7 @@ export const userApi = {
   create: async (payload: UserCreatePayload) =>
     await axiosInstance.post(API_ENDPOINTS.user.create, payload),
   update: async (id: string, payload: UserUpdatePayload) =>
-    await axiosInstance.put(API_ENDPOINTS.user.update(id), payload),
+    await axiosInstance.patch(API_ENDPOINTS.user.update(id), payload),
   delete: async (id: string) =>
     await axiosInstance.delete(API_ENDPOINTS.user.delete(id)),
 };
