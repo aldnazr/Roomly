@@ -83,7 +83,7 @@ export function RoomList({ rooms, isError, error, onRetry }: RoomListProps) {
             href={`/room/${room.id}`}
             className="group/room block rounded-4xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Card className="h-full overflow-hidden border border-border/60 bg-card p-0 shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/room:-translate-y-1 group-hover/room:border-border group-hover/room:shadow-md">
+            <Card className="h-full overflow-hidden border border-border/60 bg-card p-0 shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/room:border-border group-hover/room:shadow-md">
               <div className="relative aspect-16/10 w-full overflow-hidden bg-muted">
                 {photo ?
                   // eslint-disable-next-line @next/next/no-img-element

@@ -195,8 +195,7 @@ export default function RoleDetailPage() {
             <Button
               variant="ghost"
               size="sm"
-              render={<Link href="/role" />}
-              nativeButton={false}
+              onClick={() => window.history.back()}
               className="-ml-3 mb-5"
             >
               <IconArrowLeft data-icon="inline-start" aria-hidden="true" />
@@ -317,7 +316,7 @@ export default function RoleDetailPage() {
                           <Field
                             key={item.slug}
                             orientation="horizontal"
-                            className="rounded-3xl bg-muted/40 p-4 ring-1 ring-foreground/5 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-muted/70"
+                            className="rounded-3xl bg-muted/40 p-4 ring-1 ring-foreground/5 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-muted/70"
                           >
                             <Checkbox
                               id={item.slug}

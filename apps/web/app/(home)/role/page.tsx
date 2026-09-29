@@ -1,42 +1,10 @@
 "use client";
 
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { RoleError } from "@/features/roles/components/role-error";
+import { RoleLoading } from "@/features/roles/components/role-loading";
+import { RoleSuccess } from "@/features/roles/components/role-success";
 import { useRoles } from "@/features/roles/use-roles";
-import {
-  IconArrowUpRight,
-  IconBriefcase,
-  IconHeadset,
-  IconIdBadge2,
-  IconKey,
-  IconRefresh,
-  IconShieldLock,
-  IconUser,
-} from "@tabler/icons-react";
-import Link from "next/link";
-
-const roleIcons = {
-  guest: IconUser,
-  staff: IconHeadset,
-  manager: IconBriefcase,
-  admin: IconShieldLock,
-};
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RolePage() {
   const { isLoading, isError, data, refetch } = useRoles();
@@ -86,118 +54,9 @@ export default function RolePage() {
         </div>
       </section>
 
-      {isLoading && (
-        <div className="grid gap-4 md:grid-cols-2" aria-label="Memuat role">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="rounded-4xl bg-muted/50 p-1 ring-1 ring-foreground/5"
-            >
-              <div className="flex min-h-44 items-start gap-4 rounded-[calc(2rem-4px)] bg-card p-5">
-                <Skeleton className="size-11 shrink-0 rounded-2xl" />
-                <div className="flex flex-1 flex-col gap-3">
-                  <Skeleton className="h-5 w-28" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="mt-2 h-5 w-24 rounded-full" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {isError && !isLoading && (
-        <Card className="ring-destructive/20">
-          <CardHeader>
-            <CardTitle>Role belum dapat dimuat</CardTitle>
-            <CardDescription>
-              Terjadi kendala saat mengambil data akses. Silakan coba kembali.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => refetch()}>
-              <IconRefresh data-icon="inline-start" aria-hidden="true" />
-              Coba lagi
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {!isLoading && !isError && roles.length === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Belum ada role</CardTitle>
-            <CardDescription>
-              Role yang tersedia akan tampil di area ini.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-
-      {!isLoading && !isError && roles.length > 0 && (
-        <ItemGroup className="grid gap-4 md:grid-cols-2">
-          {roles.map((role, index) => {
-            const RoleIcon =
-              roleIcons[role.slug.toLowerCase() as keyof typeof roleIcons] ??
-              IconIdBadge2;
-
-            return (
-              <Card
-                key={role.slug}
-                className="animate-in rounded-4xl bg-muted/50 p-1 ring-1 ring-foreground/5 fade-in slide-in-from-bottom-4 animation-duration-700 fill-mode-[both] [animation-timing-function:cubic-bezier(0.22,1,0.36,1)]"
-                style={{ animationDelay: `${index * 70}ms` }}
-              >
-                <Item
-                  className="min-h-44 items-start rounded-[calc(2rem-4px)] bg-card p-5 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                  render={<Link href={`/role/${role.slug}`} />}
-                >
-                  <ItemMedia
-                    variant="icon"
-                    className="size-11 rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/10"
-                  >
-                    <RoleIcon
-                      className="size-5"
-                      stroke={1.5}
-                      aria-hidden="true"
-                    />
-                  </ItemMedia>
-                  <ItemContent className="min-w-0 gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <ItemTitle className="font-heading text-base">
-                        {role.name}
-                      </ItemTitle>
-                      <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground ring-1 ring-foreground/5">
-                        {role.slug}
-                      </span>
-                    </div>
-                    <ItemDescription className="line-clamp-2 leading-5">
-                      {role.description}
-                    </ItemDescription>
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <IconKey
-                        className="size-3.5"
-                        stroke={1.5}
-                        aria-hidden="true"
-                      />
-                      <span>{role.permissions.length} permission</span>
-                    </div>
-                  </ItemContent>
-                  <ItemActions className="self-center">
-                    <span className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground transition-[transform,color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/item:-translate-y-0.5 group-hover/item:translate-x-0.5 group-hover/item:text-foreground">
-                      <IconArrowUpRight
-                        className="size-4"
-                        stroke={1.5}
-                        aria-hidden="true"
-                      />
-                    </span>
-                  </ItemActions>
-                </Item>
-              </Card>
-            );
-          })}
-        </ItemGroup>
-      )}
+      {isLoading && <RoleLoading />}
+      {isError && !isLoading && <RoleError onRetry={() => refetch()} />}
+      {!isLoading && !isError && <RoleSuccess roles={roles} />}
     </div>
   );
 }

@@ -12,13 +12,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableSkeleton } from "@/features/users/components/table-skeleton";
 import { TableUser } from "@/features/users/components/table-user";
+import { UserError } from "@/features/users/components/user-error";
 import { useUser } from "@/features/users/use-users";
-import {
-  IconRefresh,
-  IconShieldLock,
-  IconUserPlus,
-  IconUsersGroup,
-} from "@tabler/icons-react";
+import { IconShieldLock, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
 import Link from "next/link";
 
 export default function UserPage() {
@@ -116,20 +112,7 @@ export default function UserPage() {
         </CardHeader>
         <CardContent>
           {isLoading && <TableSkeleton />}
-          {isError && !isLoading && (
-            <div className="flex min-h-56 flex-col items-center justify-center gap-4 text-center">
-              <div>
-                <p className="font-medium">Data pengguna belum dapat dimuat</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Periksa koneksi server, lalu coba kembali.
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => refetch()}>
-                <IconRefresh data-icon="inline-start" aria-hidden="true" />
-                Coba lagi
-              </Button>
-            </div>
-          )}
+          {isError && !isLoading && <UserError onRetry={() => refetch()} />}
           {!isLoading && !isError && <TableUser users={data} />}
         </CardContent>
       </Card>
