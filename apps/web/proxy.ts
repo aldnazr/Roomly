@@ -5,19 +5,29 @@ import { auth } from "@/auth";
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname.startsWith("/login");
+  const isGuestArea = pathname === "/guest" || pathname.startsWith("/guest/");
   const session = await auth();
-  const isAuthenticated = Boolean(session);
   const role = session?.user.role;
 
-  if (isAuthPage) {
-    return isAuthenticated ?
-        NextResponse.redirect(new URL("/", request.url))
-      : NextResponse.next();
+  if (!session) {
+    return (
+      isAuthPage ?
+        NextResponse.next()
+      : NextResponse.redirect(new URL("/login", request.url))
+    );
   }
 
-  return isAuthenticated ?
-      NextResponse.next()
-    : NextResponse.redirect(new URL("/login", request.url));
+  if (role === "guest") {
+    return (
+      isGuestArea ?
+        NextResponse.next()
+      : NextResponse.redirect(new URL("/guest", request.url))
+    );
+  }
+
+  return isAuthPage ?
+      NextResponse.redirect(new URL("/", request.url))
+    : NextResponse.next();
 }
 
 export const config = {
