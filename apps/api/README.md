@@ -80,6 +80,19 @@ Tokens are HS256 JWTs valid for one hour, carrying `sub` (user id), `role`,
 `iat`, and `exp`. Send them as `Authorization: Bearer <accessToken>` on protected
 endpoints such as those in [Roles](#roles). There is no refresh/revocation: tokens are valid until expiry.
 
+### Profile & Permissions
+
+`GET /api/auth/me` returns the authenticated user's full profile, complete role object, and permissions array.
+
+```bash
+curl -s http://localhost:4000/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+- `200` → `{ "data": { "id": 1, "username": "admin", "name": "Admin", "email": "admin@mail.com", "role": { "slug": "admin", "name": "Admin", "description": "..." }, "permissions": ["rooms.browse", ...] } }`
+- `401` → missing, malformed, invalid, or expired token
+
+
 ## Roles
 
 Roles, permissions, and their mappings live in the `roles`, `permissions`, and

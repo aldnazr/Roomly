@@ -5,12 +5,23 @@ import { RoleLoading } from "@/features/roles/components/role-loading";
 import { RoleSuccess } from "@/features/roles/components/role-success";
 import { useRoles } from "@/features/roles/use-roles";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSession } from "next-auth/react";
+import { forbidden } from "next/navigation";
+import { useMemo } from "react";
 
 export default function RolePage() {
   const { isLoading, isError, data, refetch } = useRoles();
+  const { data: sessionData } = useSession();
   const roles = data?.data ?? [];
-  const permissionCount = new Set(roles.flatMap((role) => role.permissions))
-    .size;
+  const permissionCount = roles.map((role) => role.permissions).length;
+  const filtered = useMemo(() => {
+    console.log("find session");
+    return data?.data.find((v) => v.slug === sessionData?.user.role);
+  }, [data, sessionData]);
+
+  if (filtered && !filtered?.permissions.includes("permissions.manage")) {
+    forbidden();
+  }
 
   return (
     <div className="flex flex-col gap-6">

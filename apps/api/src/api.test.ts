@@ -283,6 +283,55 @@ describe("permissions API", () => {
   });
 });
 
+describe("GET /api/auth/me", () => {
+  const meUrl = () => `${baseUrl}/api/auth/me`;
+  const get = (token?: string) =>
+    fetch(meUrl(), token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+
+  let adminToken: string;
+
+  beforeAll(async () => {
+    const res = await login({ email: "admin@example.com", password: "rotated-password-456" });
+    adminToken = ((await res.json()) as { data: { accessToken: string } }).data.accessToken;
+  });
+
+  test("returns 401 without token or with malformed token", async () => {
+    expect((await get()).status).toBe(401);
+    expect((await get("invalid-token")).status).toBe(401);
+  });
+
+  test("returns current user info with complete role and permissions", async () => {
+    const res = await get(adminToken);
+    expect(res.status).toBe(200);
+
+    const json = (await res.json()) as {
+      data: {
+        id: number;
+        username: string | null;
+        name: string;
+        email: string;
+        role: {
+          slug: string;
+          name: string;
+          description: string;
+        };
+        permissions: string[];
+      };
+    };
+
+    expect(json.data.username).toBe("admin");
+    expect(json.data.email).toBe("admin@example.com");
+    expect(json.data.role).toEqual({
+      slug: "admin",
+      name: "Admin",
+      description: "Administrator dengan akses penuh ke seluruh fitur aplikasi.",
+    });
+    expect(json.data.permissions).toContain("permissions.manage");
+    expect(json.data.permissions).toContain("users.manage");
+    expect(JSON.stringify(json.data)).not.toContain("password");
+  });
+});
+
 describe("roles API", () => {
   const rolesUrl = (path = "") => `${baseUrl}/api/roles${path}`;
   const get = (path: string, token: string) =>
