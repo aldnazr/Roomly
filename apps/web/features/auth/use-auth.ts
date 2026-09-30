@@ -6,6 +6,6 @@ export const authKeys = {
   me: () => [...authKeys.all, "me"] as const,
 };
 
-export function useMe() {
+export function useAuthMe() {
   return useQuery({ queryKey: authKeys.me(), queryFn: authApi.me });
 }
