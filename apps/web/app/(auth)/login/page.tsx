@@ -1,8 +1,7 @@
 "use client";
 
 import { IconDoorEnter } from "@tabler/icons-react";
-import { type AxiosError } from "axios";
-import { type SubmitEvent, useRef, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,10 +11,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { LoginFormErrors, loginSchema } from "@/features/auth/scheme";
+import { z } from "zod";
 
 function BrandMark() {
   return (
@@ -31,27 +37,30 @@ function BrandMark() {
 }
 
 export default function LoginPage() {
-  const [error, setError] = useState("");
-  const usernameRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const [errors, setErrors] = useState<LoginFormErrors>({});
   const router = useRouter();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const { data, success, error } = loginSchema.safeParse(
+      Object.fromEntries(form),
+    );
 
-    const username = usernameRef.current?.value;
-    const password = passwordRef.current?.value;
-
-    setError("");
+    if (!success) {
+      setErrors(z.flattenError(error).fieldErrors);
+      return;
+    }
+    setErrors({});
 
     const result = await signIn("credentials", {
-      username,
-      password,
+      username: data.identifier,
+      password: data.password,
       redirect: false,
     });
 
     if (result.error) {
-      setError("Username/email atau password salah");
+      setErrors({ identifier: ["Username/email atau password salah"] });
       return;
     }
 
@@ -112,19 +121,18 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} noValidate>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="username">
-                    Username atau email
-                  </FieldLabel>
+                  <FieldLabel htmlFor="identifier">Username/Email</FieldLabel>
                   <Input
-                    id="username"
-                    name="username"
+                    id="identifier"
+                    name="identifier"
                     type="text"
                     autoComplete="username"
-                    placeholder="username atau email"
+                    placeholder="Masukkan Username/Email"
                     className="h-11"
-                    ref={usernameRef}
-                    required
                   />
+                  {errors.identifier && (
+                    <FieldError>{errors.identifier[0]}</FieldError>
+                  )}
                 </Field>
 
                 <Field>
@@ -136,16 +144,11 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     placeholder="Masukkan kata sandi"
                     className="h-11"
-                    ref={passwordRef}
-                    required
                   />
+                  {errors.password && (
+                    <FieldError>{errors.password[0]}</FieldError>
+                  )}
                 </Field>
-
-                {error && (
-                  <p className="text-sm text-destructive" role="alert">
-                    {error}
-                  </p>
-                )}
 
                 <Field>
                   <Button type="submit" size="lg" className="w-full">
