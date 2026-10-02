@@ -30,18 +30,6 @@ function BrandMark() {
   );
 }
 
-// function getErrorMessage(error: AxiosError<ApiError>) {
-//   if (!error.response) {
-//     return "Tidak dapat terhubung ke server. Coba lagi beberapa saat.";
-//   }
-//   if (error.response.status === 401) {
-//     return "Email atau kata sandi tidak sesuai.";
-//   }
-//   return (
-//     error.response.data.error?.message ?? "Login gagal. Silakan coba lagi."
-//   );
-// }
-
 export default function LoginPage() {
   const [error, setError] = useState("");
   const usernameRef = useRef<HTMLInputElement>(null);
@@ -72,7 +60,6 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-svh bg-muted/40 lg:grid-cols-[minmax(0,1.05fr)_minmax(28rem,0.95fr)]">
-      {/* ponytail: scoped dark mode for hero panel; add theme-specific imagery when marketing assets ready */}
       <section className="dark relative hidden min-h-svh overflow-hidden border-r border-border bg-background p-10 text-foreground lg:flex lg:flex-col xl:p-14">
         <div className="relative z-10 flex h-full flex-col">
           <BrandMark />
@@ -122,10 +109,12 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <FieldGroup>
                 <Field>
-                  <FieldLabel htmlFor="username">Username atau email</FieldLabel>
+                  <FieldLabel htmlFor="username">
+                    Username atau email
+                  </FieldLabel>
                   <Input
                     id="username"
                     name="username"
@@ -160,7 +149,7 @@ export default function LoginPage() {
 
                 <Field>
                   <Button type="submit" size="lg" className="w-full">
-                    "Masuk"
+                    Masuk
                     <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
                   </Button>
                 </Field>
@@ -168,10 +157,12 @@ export default function LoginPage() {
             </form>
           </CardContent>
 
-          <CardFooter className="border-t">
-            <p className="text-sm text-muted-foreground">
-              Belum memiliki akun? Daftar untuk mulai memesan hotel.
-            </p>
+          <CardFooter className="flex flex-col gap-2 border-t">
+            <p>Atau login sebagai tamu</p>
+            <Button variant={"secondary"} size="lg" className="w-full">
+              Guest
+              <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
+            </Button>
           </CardFooter>
         </Card>
 

@@ -12,6 +12,7 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
@@ -27,9 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { useRoles } from "@/features/roles/use-roles";
+import { UserFormSkeleton } from "@/features/users/components/user-form-skeleton";
+import {
+  userCreateSchema,
+  UserFormErrors,
+  userUpdateSchema,
+} from "@/features/users/schema";
 import { UserCreatePayload, UserUpdatePayload } from "@/features/users/types";
 import {
   useUserCreate,
@@ -47,24 +53,15 @@ import {
   IconUser,
   IconUserPlus,
 } from "@tabler/icons-react";
+import isError from "next/dist/lib/is-error";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { SyntheticEvent } from "react";
-
-function UserFormSkeleton() {
-  return (
-    <div className="flex flex-col gap-6" aria-label="Memuat data pengguna">
-      <Skeleton className="h-52 w-full rounded-4xl" />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Skeleton className="h-125 w-full rounded-4xl" />
-        <Skeleton className="h-72 w-full rounded-4xl" />
-      </div>
-    </div>
-  );
-}
+import { SyntheticEvent, useState } from "react";
+import { z } from "zod";
 
 export default function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
+  const [errors, setErrors] = useState<UserFormErrors>({});
   const router = useRouter();
   const isEditing = userId !== "create";
 
@@ -92,30 +89,36 @@ export default function UserDetailPage() {
   function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const username = String(formData.get("username"));
-    const email = String(formData.get("email"));
-    const password = String(formData.get("password"));
-    const role = String(formData.get("role"));
-    const onSuccess = () => window.history.back();
+    const onSuccess = router.back;
+    const result = (isEditing ? userUpdateSchema : userCreateSchema).safeParse(
+      Object.fromEntries(formData),
+    );
+
+    if (!result.success) {
+      setErrors(z.flattenError(result.error).fieldErrors);
+      return;
+    }
+    setErrors({});
 
     if (isEditing) {
-      const payload: UserUpdatePayload = { username, email, role };
-      if (password) payload.password = password;
-
+      const payload = result.data as UserUpdatePayload;
       toast.promise(
         updateUser.mutateAsync({ id: userId, payload }, { onSuccess }),
         {
           loading: "Updating user…",
-          success: `${username} updated.`,
+          success: `${payload.username} updated.`,
           error: "Could not update user.",
         },
       );
-
       return;
     }
 
-    const payload: UserCreatePayload = { username, email, password, role };
-    createUser.mutate(payload, { onSuccess });
+    const payload = result.data as UserCreatePayload;
+    toast.promise(createUser.mutateAsync(payload, { onSuccess }), {
+      loading: "Creating user…",
+      success: `${payload.username} created.`,
+      error: "Could not create user.",
+    });
   }
 
   if (isEditing && isUserLoading) return <UserFormSkeleton />;
@@ -134,7 +137,7 @@ export default function UserDetailPage() {
             <IconRefresh data-icon="inline-start" aria-hidden="true" />
             Coba lagi
           </Button>
-          <Button onClick={() => window.history.back()} nativeButton={false}>
+          <Button onClick={router.back} nativeButton={false}>
             <IconArrowLeft data-icon="inline-start" aria-hidden="true" />
             Kembali
           </Button>
@@ -207,7 +210,7 @@ export default function UserDetailPage() {
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="animate-in rounded-4xl bg-muted/50 p-1 ring-1 ring-foreground/5 fade-in slide-in-from-bottom-4 animation-duration-[800ms] fill-mode-[both] [animation-timing-function:cubic-bezier(0.22,1,0.36,1)]">
           <Card className="rounded-[calc(2rem-4px)] ring-0">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <CardHeader>
                 <CardTitle>Detail akun</CardTitle>
                 <CardDescription>
@@ -237,13 +240,15 @@ export default function UserDetailPage() {
                         type="text"
                         defaultValue={user?.username ?? ""}
                         autoComplete="username"
-                        minLength={3}
-                        required
+                        aria-invalid={!!errors.username}
                       />
-                      <FieldDescription>
-                        Minimal 3 karakter; gunakan huruf, angka, titik, atau
-                        garis bawah.
-                      </FieldDescription>
+                      {errors.username ?
+                        <FieldError>{errors.username[0]}</FieldError>
+                      : <FieldDescription>
+                          Minimal 3 karakter; gunakan huruf, angka, titik, atau
+                          garis bawah.
+                        </FieldDescription>
+                      }
                     </Field>
 
                     <Field>
@@ -262,11 +267,13 @@ export default function UserDetailPage() {
                         type="email"
                         defaultValue={user?.email ?? ""}
                         autoComplete="email"
-                        required
                       />
-                      <FieldDescription>
-                        Gunakan alamat email aktif milik pengguna.
-                      </FieldDescription>
+                      {errors.email ?
+                        <FieldError>{errors.email[0]}</FieldError>
+                      : <FieldDescription>
+                          Gunakan alamat email aktif milik pengguna.
+                        </FieldDescription>
+                      }
                     </Field>
 
                     <Field>
@@ -289,13 +296,15 @@ export default function UserDetailPage() {
                         type="password"
                         autoComplete="new-password"
                         minLength={8}
-                        required={!isEditing}
                       />
-                      <FieldDescription>
-                        {isEditing ?
-                          "Isi hanya jika Anda ingin mengganti password."
-                        : "Buat password sementara yang aman untuk pengguna."}
-                      </FieldDescription>
+                      {errors.password ?
+                        <FieldError>{errors.password[0]}</FieldError>
+                      : <FieldDescription>
+                          {isEditing ?
+                            "Isi hanya jika Anda ingin mengganti password."
+                          : "Buat password sementara yang aman untuk pengguna."}
+                        </FieldDescription>
+                      }
                     </Field>
 
                     <Field>
@@ -331,11 +340,15 @@ export default function UserDetailPage() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                      <FieldDescription>
-                        {isRoleError ?
-                          "Role gagal dimuat. Muat ulang halaman untuk mencoba lagi."
-                        : "Role menentukan fitur dan data yang dapat diakses."}
-                      </FieldDescription>
+                      {errors.role ?
+                        <FieldError>{errors.role[0]}</FieldError>
+                      : <FieldDescription>
+                          {isRoleError ?
+                            "Role gagal dimuat. Muat ulang halaman untuk mencoba lagi."
+                          : "Role menentukan fitur dan data yang dapat diakses."
+                          }
+                        </FieldDescription>
+                      }
                     </Field>
                   </FieldGroup>
                 </FieldSet>

@@ -1,3 +1,8 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
+
 export default function GuestPage() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -7,6 +12,7 @@ export default function GuestPage() {
       <p className="mt-2 text-sm text-muted-foreground">
         Halaman tamu — riwayat booking akan tampil di sini.
       </p>
+      <Button onClick={async () => await signOut()}>Logout</Button>
     </main>
   );
 }

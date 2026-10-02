@@ -36,7 +36,7 @@ import {
   IconShieldLock,
 } from "@tabler/icons-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 interface PermissionGroup {
@@ -81,6 +81,7 @@ export default function RoleDetailPage() {
     useRoleDetail();
   const { mutateAsync, isPending } = useSetPermission(roleSlug);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const router = useRouter();
 
   const role = roles?.data.find((item) => item.slug === roleSlug);
 
@@ -168,7 +169,7 @@ export default function RoleDetailPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => window.history.back()} nativeButton={false}>
+          <Button onClick={router.back} nativeButton={false}>
             <IconArrowLeft data-icon="inline-start" aria-hidden="true" />
             Kembali ke daftar role
           </Button>
@@ -195,7 +196,7 @@ export default function RoleDetailPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.history.back()}
+              onClick={router.back}
               className="-ml-3 mb-5"
             >
               <IconArrowLeft data-icon="inline-start" aria-hidden="true" />

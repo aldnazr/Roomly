@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Room } from "../types";
+import { useRouter } from "next/navigation";
 
 const idr = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -44,6 +45,8 @@ export function RoomDetail({
   error,
   onRetry,
 }: RoomDetailProps) {
+  const router = useRouter();
+
   if (isLoading) {
     return (
       <div className="space-y-6" role="status" aria-label="Loading room">
@@ -67,7 +70,7 @@ export function RoomDetail({
           nativeButton={false}
           variant="ghost"
           size="sm"
-          onClick={() => window.history.back()}
+          onClick={router.back}
         >
           <IconArrowLeft className="size-4" />
           Back to rooms
@@ -102,7 +105,7 @@ export function RoomDetail({
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+        <Button variant="ghost" size="sm" onClick={router.back}>
           <IconArrowLeft className="size-4" />
           Back to rooms
         </Button>
