@@ -61,7 +61,7 @@ describe("migrations", () => {
     const applied = (
       await query<{ id: number }>("SELECT id FROM schema_migrations ORDER BY id ASC")
     ).map((row) => row.id);
-    expect(applied).toEqual([1, 2, 3, 4]);
+    expect(applied).toEqual([1, 2, 3, 4, 5]);
 
     const columns = (
       await query<{ name: string }>("PRAGMA table_info(users)")
@@ -81,7 +81,7 @@ describe("migrations", () => {
     const count = (
       await queryOne<{ n: number }>("SELECT COUNT(*) AS n FROM schema_migrations")
     )!.n;
-    expect(count).toBe(4);
+    expect(count).toBe(5);
   });
 });
 
@@ -191,7 +191,7 @@ describe("POST /api/auth/login", () => {
 
   test("returns identical 401 bodies for unknown email, wrong password, and missing hash", async () => {
     await db.execute(
-      "INSERT INTO users (name, email, role) VALUES ('No Hash', 'nohash@example.com', 'guest')",
+      "INSERT INTO users (name, email, role) VALUES ('No Hash', 'nohash@example.com', 'staff')",
     );
 
     const cases = [
@@ -356,16 +356,21 @@ describe("roles API", () => {
     adminToken = ((await admin.json()) as { data: { accessToken: string } }).data.accessToken;
 
     await db.execute({
-      sql: "INSERT INTO users (name, email, role, password_hash) VALUES ('Guest', 'guest@example.com', 'guest', ?)",
+      sql: "INSERT INTO users (name, email, role, password_hash) VALUES ('Staff', 'guest@example.com', 'staff', ?)",
       args: [await bcrypt.hash("guest-password-123", 12)],
     });
     const guest = await login({ email: "guest@example.com", password: "guest-password-123" });
     guestToken = ((await guest.json()) as { data: { accessToken: string } }).data.accessToken;
   });
 
+  // ponytail: restore seeded permissions after tests that replace staff's set.
+  afterAll(async () => {
+    await seedRoles();
+  });
+
   test("returns 401 without or with an invalid token", async () => {
     expect((await fetch(rolesUrl())).status).toBe(401);
-    expect((await get("/guest", "not-a-jwt")).status).toBe(401);
+    expect((await get("/staff", "not-a-jwt")).status).toBe(401);
   });
 
   test("lists every seeded role with its permissions for any authenticated user", async () => {
@@ -375,23 +380,27 @@ describe("roles API", () => {
     const { data } = (await res.json()) as {
       data: { slug: string; name: string; description: string; permissions: string[] }[];
     };
-    expect(data.map((role) => role.slug)).toEqual(["guest", "staff", "manager", "admin"]);
+    expect(data.map((role) => role.slug)).toEqual(["staff", "admin"]);
     expect(data[0]!.permissions).toEqual([
       "rooms.browse",
       "bookings.create",
       "bookings.view_own",
       "bookings.cancel_own",
+      "bookings.view_all",
+      "bookings.check_in",
+      "bookings.check_out",
+      "rooms.update_status",
     ]);
     const admin = data.find((role) => role.slug === "admin")!;
     expect(admin.permissions).toContain("permissions.manage");
   });
 
   test("returns one role and 404 for an unknown slug", async () => {
-    const res = await get("/guest", guestToken);
+    const res = await get("/staff", guestToken);
     expect(res.status).toBe(200);
 
     const { data } = (await res.json()) as { data: { slug: string; description: string } };
-    expect(data.slug).toBe("guest");
+    expect(data.slug).toBe("staff");
     expect(typeof data.description).toBe("string");
 
     expect((await get("/missing", guestToken)).status).toBe(404);
@@ -594,7 +603,7 @@ describe("users API", () => {
   test("updates an existing user and reflects changes", async () => {
     const created = await post(
       "",
-      { username: "to_update", email: "update@example.com", password: "initial-password-123", role: "guest" },
+      { username: "to_update", email: "update@example.com", password: "initial-password-123", role: "admin" },
       adminToken,
     );
     const { id } = ((await created.json()) as { data: { id: number } }).data;
@@ -635,7 +644,7 @@ describe("users API", () => {
   test("deletes a user and confirms 404 afterwards", async () => {
     const created = await post(
       "",
-      { username: "to_delete", email: "delete_me@example.com", password: "temp-password-123", role: "guest" },
+      { username: "to_delete", email: "delete_me@example.com", password: "temp-password-123", role: "staff" },
       adminToken,
     );
     const { id } = ((await created.json()) as { data: { id: number } }).data;
@@ -695,7 +704,7 @@ describe("room-types API", () => {
     expect((await post("", {}, "bad-token")).status).toBe(401);
   });
 
-  test("returns 403 on mutation endpoints for guest role", async () => {
+  test("returns 403 on mutation endpoints for staff role", async () => {
     expect((await post("", { name: "Deluxe", capacity: 2, base_price: 500000 }, guestToken)).status).toBe(403);
     expect((await patch("/1", { base_price: 600000 }, guestToken)).status).toBe(403);
     expect((await del("/1", guestToken)).status).toBe(403);

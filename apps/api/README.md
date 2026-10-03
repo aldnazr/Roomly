@@ -112,7 +112,7 @@ never changes.
 curl -s http://localhost:4000/api/roles -H "Authorization: Bearer $TOKEN"
 ```
 
-- `200` → `{ "data": [ { "slug": "guest", "name": "Guest", "description": "...", "permissions": ["rooms.browse", ...] } ] }`
+- `200` → `{ "data": [ { "slug": "staff", "name": "Front Desk / Staff", "description": "...", "permissions": ["rooms.browse", ...] } ] }`
 
 `GET /api/roles/:slug` returns one role in the same shape.
 
@@ -208,7 +208,7 @@ curl -s -X POST http://localhost:4000/api/users \
 curl -s -X PATCH http://localhost:4000/api/users/2 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"role":"manager"}'
+  -d '{"role":"staff"}'
 ```
 
 - `200` → updated user object
@@ -230,7 +230,7 @@ curl -s -X DELETE http://localhost:4000/api/users/2 \
 
 ## Room Types
 
-Manage room types (Standard, Deluxe, etc.). Reading requires `rooms.browse` permission (held by guest, staff, manager, admin). Create, update, and delete require `room_types.manage` permission (manager, admin).
+Manage room types (Standard, Deluxe, etc.). Reading requires `rooms.browse` permission (held by staff, admin). Create, update, and delete require `room_types.manage` permission (admin).
 
 ### List
 

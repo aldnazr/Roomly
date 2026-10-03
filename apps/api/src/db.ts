@@ -244,6 +244,34 @@ const migrations: Migration[] = [
       }
     },
   },
+  {
+    id: 5,
+    name: "remove_guest_manager_roles",
+    up: async (db) => {
+      await db.execute("DELETE FROM users WHERE role IN ('guest', 'manager')");
+
+      // ponytail: SQLite cannot drop a column default in place; rebuild the table.
+      await db.executeMultiple(`
+        PRAGMA foreign_keys = OFF;
+        CREATE TABLE users_new (
+          id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL CHECK(length(trim(name)) > 0),
+          email TEXT NOT NULL UNIQUE COLLATE NOCASE CHECK(length(trim(email)) > 0),
+          role TEXT NOT NULL REFERENCES roles(slug) ON DELETE RESTRICT ON UPDATE CASCADE,
+          password_hash TEXT,
+          username TEXT
+        ) STRICT;
+        INSERT INTO users_new (id, name, email, role, password_hash, username)
+          SELECT id, name, email, role, password_hash, username FROM users;
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
+        PRAGMA foreign_keys = ON;
+      `);
+
+      await db.execute("DELETE FROM roles WHERE slug IN ('guest', 'manager')");
+    },
+  },
 ];
 
 export async function migrate(database: Client = db): Promise<void> {

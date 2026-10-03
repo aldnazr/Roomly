@@ -162,7 +162,12 @@ export default function LoginPage() {
 
           <CardFooter className="flex flex-col gap-2 border-t">
             <p>Atau login sebagai tamu</p>
-            <Button variant={"secondary"} size="lg" className="w-full">
+            <Button
+              variant={"secondary"}
+              size="lg"
+              className="w-full"
+              onClick={() => router.push("/guest")}
+            >
               Guest
               <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
             </Button>

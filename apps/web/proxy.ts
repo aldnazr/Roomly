@@ -10,19 +10,9 @@ export default async function proxy(request: NextRequest) {
   const role = session?.user.role;
 
   if (!session) {
-    return (
-      isAuthPage ?
+    return isAuthPage || isGuestArea ?
         NextResponse.next()
-      : NextResponse.redirect(new URL("/login", request.url))
-    );
-  }
-
-  if (role === "guest") {
-    return (
-      isGuestArea ?
-        NextResponse.next()
-      : NextResponse.redirect(new URL("/guest", request.url))
-    );
+      : NextResponse.redirect(new URL("/login", request.url));
   }
 
   return isAuthPage ?

@@ -86,18 +86,6 @@ const permissions = [
 
 const roles = [
   {
-    slug: "guest",
-    name: "Guest",
-    description:
-      "Tamu yang dapat mencari kamar dan mengelola booking miliknya sendiri.",
-    permissions: [
-      "rooms.browse",
-      "bookings.create",
-      "bookings.view_own",
-      "bookings.cancel_own",
-    ],
-  },
-  {
     slug: "staff",
     name: "Front Desk / Staff",
     description: "Petugas operasional yang menangani booking dan status kamar.",
@@ -110,27 +98,6 @@ const roles = [
       "bookings.check_in",
       "bookings.check_out",
       "rooms.update_status",
-    ],
-  },
-  {
-    slug: "manager",
-    name: "Manager",
-    description:
-      "Pengelola tipe kamar, harga, laporan, dan persetujuan refund.",
-    permissions: [
-      "rooms.browse",
-      "bookings.create",
-      "bookings.view_own",
-      "bookings.cancel_own",
-      "bookings.view_all",
-      "bookings.check_in",
-      "bookings.check_out",
-      "rooms.update_status",
-      "room_types.manage",
-      "pricing.manage",
-      "reports.occupancy.view",
-      "reports.revenue.view",
-      "refunds.approve",
     ],
   },
   {
