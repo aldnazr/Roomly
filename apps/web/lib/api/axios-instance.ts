@@ -2,7 +2,7 @@ import axios from "axios";
 import { getSession } from "next-auth/react";
 
 import { API_ENDPOINTS } from "./api-endpoints";
-import { showSessionExpired } from "../store/session-expired";
+import { useSessionStore } from "../store/session-store";
 
 // Server-side calls (next-auth authorize) use the API_URL service binding
 // injected by Vercel; NEXT_PUBLIC_API_URL covers local dev. The browser uses
@@ -34,6 +34,7 @@ axiosInstance.interceptors.request.use(async (config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
+    const { showSessionExpired } = useSessionStore();
     const isLoginAttempt = error.config?.url === API_ENDPOINTS.auth.login;
     if (
       typeof window !== "undefined" &&

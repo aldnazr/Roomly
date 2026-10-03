@@ -183,7 +183,7 @@ export function RoomDetail({
           {room.amenities && room.amenities.length > 0 && (
             <div className="border-t border-border/60 pt-6">
               <h2 className="text-sm font-semibold text-foreground mb-3">
-                Amenities
+                Facilities
               </h2>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {room.amenities.map((a) => (

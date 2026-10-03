@@ -22,6 +22,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { LoginFormErrors, loginSchema } from "@/features/auth/scheme";
 import { z } from "zod";
+import { Spinner } from "@/components/ui/spinner";
 
 function BrandMark() {
   return (
@@ -38,9 +39,11 @@ function BrandMark() {
 
 export default function LoginPage() {
   const [errors, setErrors] = useState<LoginFormErrors>({});
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    setLoading(true);
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const { data, success, error } = loginSchema.safeParse(
@@ -49,6 +52,7 @@ export default function LoginPage() {
 
     if (!success) {
       setErrors(z.flattenError(error).fieldErrors);
+      setLoading(false);
       return;
     }
     setErrors({});
@@ -61,9 +65,11 @@ export default function LoginPage() {
 
     if (result.error) {
       setErrors({ identifier: ["Username/email atau password salah"] });
+      setLoading(false);
       return;
     }
 
+    setLoading(false);
     router.push("/");
   }
 
@@ -152,8 +158,10 @@ export default function LoginPage() {
 
                 <Field>
                   <Button type="submit" size="lg" className="w-full">
+                    {loading ?
+                      <Spinner />
+                    : <IconDoorEnter />}
                     Masuk
-                    <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
                   </Button>
                 </Field>
               </FieldGroup>
@@ -168,8 +176,8 @@ export default function LoginPage() {
               className="w-full"
               onClick={() => router.push("/guest")}
             >
+              <IconDoorEnter />
               Guest
-              <IconDoorEnter data-icon="inline-end" aria-hidden="true" />
             </Button>
           </CardFooter>
         </Card>

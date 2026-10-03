@@ -18,6 +18,7 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
+  FieldTitle,
 } from "@/components/ui/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
@@ -314,31 +315,34 @@ export default function RoleDetailPage() {
                       </FieldLegend>
                       <FieldGroup className="gap-2">
                         {group.items.map((item) => (
-                          <Field
+                          <FieldLabel
                             key={item.slug}
-                            orientation="horizontal"
-                            className="rounded-3xl bg-muted/40 p-4 ring-1 ring-foreground/5 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-muted/70"
+                            htmlFor={item.slug}
+                            className="hover:cursor-pointer"
                           >
-                            <Checkbox
-                              id={item.slug}
-                              name={item.name}
-                              className="size-5 rounded-lg"
-                              checked={checked.has(item.slug)}
-                              onCheckedChange={() => toggleChecked(item.slug)}
-                              disabled={isPending}
-                            />
-                            <FieldContent>
-                              <FieldLabel htmlFor={item.slug}>
-                                {item.name}
-                              </FieldLabel>
-                              <FieldDescription className="leading-5">
-                                {item.description}
-                              </FieldDescription>
-                              <span className="font-mono text-[10px] text-muted-foreground/70">
-                                {item.slug}
-                              </span>
-                            </FieldContent>
-                          </Field>
+                            <Field
+                              orientation="horizontal"
+                              className="rounded-3xl bg-muted/40 p-4 ring-1 ring-foreground/5 transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-muted/70"
+                            >
+                              <Checkbox
+                                id={item.slug}
+                                name={item.name}
+                                className="size-5 rounded-lg"
+                                checked={checked.has(item.slug)}
+                                onCheckedChange={() => toggleChecked(item.slug)}
+                                disabled={isPending}
+                              />
+                              <FieldContent>
+                                <FieldTitle>{item.name}</FieldTitle>
+                                <FieldDescription className="leading-5">
+                                  {item.description}
+                                </FieldDescription>
+                                <span className="font-mono text-[10px] text-muted-foreground/70">
+                                  {item.slug}
+                                </span>
+                              </FieldContent>
+                            </Field>
+                          </FieldLabel>
                         ))}
                       </FieldGroup>
                     </FieldSet>

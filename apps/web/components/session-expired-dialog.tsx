@@ -14,16 +14,16 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useSessionExpired } from "@/lib/store/session-expired";
+import { useSessionStore } from "@/lib/store/session-store";
 
 export function SessionExpiredDialog() {
-  const open = useSessionExpired((s) => s.open);
+  const { open, hideSessionExpired } = useSessionStore();
 
   return (
     <AlertDialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) useSessionExpired.setState({ open: false });
+        if (!nextOpen) hideSessionExpired();
       }}
     >
       <AlertDialogContent>
