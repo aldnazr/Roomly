@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/toast";
+import { SessionExpiredDialog } from "@/components/session-expired-dialog";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <SessionProvider>
                 {children}
                 <Toaster />
+                <SessionExpiredDialog />
               </SessionProvider>
             </TooltipProvider>
           </ThemeProvider>

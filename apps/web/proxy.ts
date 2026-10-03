@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-
 import { auth } from "@/auth";
 
 export default async function proxy(request: NextRequest) {
