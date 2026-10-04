@@ -34,14 +34,13 @@ axiosInstance.interceptors.request.use(async (config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const { showSessionExpired } = useSessionStore();
     const isLoginAttempt = error.config?.url === API_ENDPOINTS.auth.login;
     if (
       typeof window !== "undefined" &&
       error.response?.status === 401 &&
       !isLoginAttempt
     ) {
-      showSessionExpired();
+      useSessionStore.getState().showSessionExpired();
     }
     return Promise.reject(error);
   },

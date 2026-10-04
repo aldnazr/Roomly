@@ -17,7 +17,8 @@ import {
 import { useSessionStore } from "@/lib/store/session-store";
 
 export function SessionExpiredDialog() {
-  const { open, hideSessionExpired } = useSessionStore();
+  const open = useSessionStore((state) => state.open);
+  const hideSessionExpired = useSessionStore((state) => state.hideSessionExpired);
 
   return (
     <AlertDialog
