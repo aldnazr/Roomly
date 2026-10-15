@@ -36,7 +36,6 @@ import {
   IconRotate,
   IconShieldLock,
 } from "@tabler/icons-react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -83,6 +82,7 @@ export default function RoleDetailPage() {
   const { mutateAsync, isPending } = useSetPermission(roleSlug);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const isAdmin = roleSlug === "admin";
 
   const role = roles?.data.find((item) => item.slug === roleSlug);
 
@@ -151,7 +151,7 @@ export default function RoleDetailPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => refetch()}>
+          <Button variant="outline" onClick={refetch}>
             <IconRefresh data-icon="inline-start" aria-hidden="true" />
             Muat ulang
           </Button>
@@ -252,9 +252,12 @@ export default function RoleDetailPage() {
             Hak akses per area
           </h2>
         </div>
-        <p className="max-w-md text-sm text-muted-foreground sm:text-right">
-          Pilih hanya akses yang dibutuhkan agar akun tetap aman dan terkontrol.
-        </p>
+        {!isAdmin && (
+          <p className="max-w-md text-sm text-muted-foreground sm:text-right">
+            Pilih hanya akses yang dibutuhkan agar akun tetap aman dan
+            terkontrol.
+          </p>
+        )}
       </div>
 
       {groups.length === 0 ?
@@ -302,7 +305,7 @@ export default function RoleDetailPage() {
                         variant="ghost"
                         size="xs"
                         onClick={() => toggleGroup(group)}
-                        disabled={isPending}
+                        disabled={isPending || isAdmin}
                       >
                         {allSelected ? "Kosongkan" : "Pilih semua"}
                       </Button>
@@ -330,7 +333,7 @@ export default function RoleDetailPage() {
                                 className="size-5 rounded-lg"
                                 checked={checked.has(item.slug)}
                                 onCheckedChange={() => toggleChecked(item.slug)}
-                                disabled={isPending}
+                                disabled={isPending || isAdmin}
                               />
                               <FieldContent>
                                 <FieldTitle>{item.name}</FieldTitle>
