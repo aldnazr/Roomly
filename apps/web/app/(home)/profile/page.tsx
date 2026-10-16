@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthMe } from "@/features/auth/use-auth";
+import { capitalize } from "@/lib/utils";
 import { IconKey, IconShieldLock, IconUser } from "@tabler/icons-react";
 
 type Row = {
@@ -174,7 +175,7 @@ export default function ProfilePage() {
                         key={permission}
                         className="rounded-md bg-muted px-2 py-1 font-mono text-xs break-all text-muted-foreground ring-1 ring-foreground/5"
                       >
-                        {words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                        {words.map(w => capitalize(w)).join(' ')}
                       </li>
                     )
                   })}
