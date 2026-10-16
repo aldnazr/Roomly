@@ -1,8 +1,10 @@
 "use client";
 
-import { useRoom } from "@/features/rooms/use-rooms";
+import { Button } from "@/components/ui/button";
 import { RoomList } from "@/features/rooms/components/room-list";
 import { RoomListSkeleton } from "@/features/rooms/components/room-list-skeleton";
+import { useRoom } from "@/features/rooms/use-rooms";
+import Link from "next/link";
 
 export default function RoomPage() {
   const { data, isLoading, isError, error, refetch } = useRoom();
@@ -19,11 +21,7 @@ export default function RoomPage() {
             Browse and manage room inventory, capacity, and nightly rates.
           </p>
         </div>
-        {rooms && (
-          <span className="self-start rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs text-muted-foreground sm:self-auto">
-            {rooms.length} {rooms.length === 1 ? "room type" : "room types"}
-          </span>
-        )}
+        <Button render={<Link href={'/room/create'}/>}>Create Room</Button>
       </div>
 
       {isLoading ?

@@ -166,14 +166,18 @@ export default function ProfilePage() {
             {permissions.length > 0 && (
               <CardContent>
                 <ul className="flex flex-wrap gap-2">
-                  {permissions.map((permission) => (
-                    <li
-                      key={permission}
-                      className="rounded-md bg-muted px-2 py-1 font-mono text-xs break-all text-muted-foreground ring-1 ring-foreground/5"
-                    >
-                      {permission}
-                    </li>
-                  ))}
+                  {permissions.map((permission) => {
+                    const words = permission.replace(/[._]/g, ' ').split(' ')
+
+                    return (
+                      <li
+                        key={permission}
+                        className="rounded-md bg-muted px-2 py-1 font-mono text-xs break-all text-muted-foreground ring-1 ring-foreground/5"
+                      >
+                        {words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </li>
+                    )
+                  })}
                 </ul>
               </CardContent>
             )}
