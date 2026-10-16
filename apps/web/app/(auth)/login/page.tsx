@@ -1,7 +1,6 @@
 "use client";
 
 import { IconDoorEnter } from "@tabler/icons-react";
-import { type SubmitEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,9 +19,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LoginFormErrors, loginSchema } from "@/features/auth/scheme";
-import { z } from "zod";
+import { LoginInput, loginSchema } from "@/features/auth/scheme";
 import { Spinner } from "@/components/ui/spinner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 function BrandMark() {
   return (
@@ -38,39 +38,38 @@ function BrandMark() {
 }
 
 export default function LoginPage() {
-  const [errors, setErrors] = useState<LoginFormErrors>({});
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: "", password: "" },
+  });
 
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    setLoading(true);
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const { data, success, error } = loginSchema.safeParse(
-      Object.fromEntries(form),
-    );
+  async function onSubmit(data: LoginInput) {
+    try {
+      const result = await signIn("credentials", {
+        username: data.identifier,
+        password: data.password,
+        redirect: false,
+      });
 
-    if (!success) {
-      setErrors(z.flattenError(error).fieldErrors);
-      setLoading(false);
-      return;
+      if (result.error) {
+        setError("identifier", {
+          message: "Username/email atau password salah",
+        });
+        return;
+      }
+
+      router.push("/");
+    } catch {
+      setError("root", {
+        message: "Tidak dapat terhubung ke server. Coba lagi.",
+      });
     }
-    setErrors({});
-
-    const result = await signIn("credentials", {
-      username: data.identifier,
-      password: data.password,
-      redirect: false,
-    });
-
-    if (result.error) {
-      setErrors({ identifier: ["Username/email atau password salah"] });
-      setLoading(false);
-      return;
-    }
-
-    setLoading(false);
-    router.push("/");
   }
 
   return (
@@ -124,41 +123,52 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <FieldGroup>
-                <Field>
+                <Field data-invalid={!!errors.identifier}>
                   <FieldLabel htmlFor="identifier">Username/Email</FieldLabel>
                   <Input
                     id="identifier"
-                    name="identifier"
                     type="text"
                     autoComplete="username"
                     placeholder="Masukkan Username/Email"
                     className="h-11"
+                    aria-invalid={!!errors.identifier}
+                    aria-describedby={
+                      errors.identifier ? "identifier-error" : undefined
+                    }
+                    {...register("identifier")}
                   />
-                  {errors.identifier && (
-                    <FieldError>{errors.identifier[0]}</FieldError>
-                  )}
+                  <FieldError id="identifier-error" errors={[errors.identifier]} />
                 </Field>
 
-                <Field>
+                <Field data-invalid={!!errors.password}>
                   <FieldLabel htmlFor="password">Kata sandi</FieldLabel>
                   <Input
                     id="password"
-                    name="password"
                     type="password"
                     autoComplete="current-password"
                     placeholder="Masukkan kata sandi"
                     className="h-11"
+                    aria-invalid={!!errors.password}
+                    aria-describedby={
+                      errors.password ? "password-error" : undefined
+                    }
+                    {...register("password")}
                   />
-                  {errors.password && (
-                    <FieldError>{errors.password[0]}</FieldError>
-                  )}
+                  <FieldError id="password-error" errors={[errors.password]} />
                 </Field>
 
+                {errors.root && <FieldError>{errors.root.message}</FieldError>}
+
                 <Field>
-                  <Button type="submit" size="lg" className="w-full">
-                    {loading ?
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ?
                       <Spinner />
                     : <IconDoorEnter />}
                     Masuk

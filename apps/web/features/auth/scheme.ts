@@ -20,4 +20,3 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
-export type LoginFormErrors = Partial<Record<keyof LoginInput, string[]>>;

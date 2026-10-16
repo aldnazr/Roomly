@@ -32,11 +32,12 @@ import { toast } from "@/components/ui/toast";
 import { useRoles } from "@/features/roles/use-roles";
 import { UserFormSkeleton } from "@/features/users/components/user-form-skeleton";
 import {
+  UserCreateInput,
   userCreateSchema,
-  UserFormErrors,
+  UserFormValues,
+  UserUpdateInput,
   userUpdateSchema,
 } from "@/features/users/schema";
-import { UserCreatePayload, UserUpdatePayload } from "@/features/users/types";
 import {
   useUserCreate,
   useUserDetail,
@@ -53,17 +54,17 @@ import {
   IconUser,
   IconUserPlus,
 } from "@tabler/icons-react";
-import isError from "next/dist/lib/is-error";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { SyntheticEvent, useState } from "react";
-import { z } from "zod";
+import { useEffect, useRef } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export default function UserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
-  const [errors, setErrors] = useState<UserFormErrors>({});
   const router = useRouter();
   const isEditing = userId !== "create";
+  const syncedKey = useRef<string | null>(null);
 
   const createUser = useUserCreate();
   const updateUser = useUserUpdate();
@@ -78,47 +79,73 @@ export default function UserDetailPage() {
     isLoading: isRoleLoading,
     isError: isRoleError,
   } = useRoles();
+  const emptyValues: UserFormValues = {
+    username: "",
+    email: "",
+    role: "",
+    password: "",
+  };
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<UserFormValues, unknown, UserCreateInput | UserUpdateInput>({
+    resolver: zodResolver(isEditing ? userUpdateSchema : userCreateSchema),
+    defaultValues: emptyValues,
+  });
+
+  useEffect(() => {
+    const key = isEditing ? (user ? userId : null) : userId;
+    if (!key || syncedKey.current === key) return;
+    syncedKey.current = key;
+    reset(
+      isEditing && user ?
+        {
+          username: user.username ?? "",
+          email: user.email ?? "",
+          role: user.role ?? "",
+          password: "",
+        }
+      : emptyValues,
+    );
+  }, [isEditing, reset, user, userId]);
 
   const roleItems =
     listRole?.data.map((item) => ({
       label: item.name,
       value: item.slug,
     })) ?? [];
-  const isPending = createUser.isPending || updateUser.isPending;
+  const isPending = isSubmitting || createUser.isPending || updateUser.isPending;
 
-  function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const onSuccess = router.back;
-    const result = (isEditing ? userUpdateSchema : userCreateSchema).safeParse(
-      Object.fromEntries(formData),
-    );
-
-    if (!result.success) {
-      setErrors(z.flattenError(result.error).fieldErrors);
-      return;
-    }
-    setErrors({});
-
+  async function onSubmit(data: UserCreateInput | UserUpdateInput) {
     if (isEditing) {
-      const payload = result.data as UserUpdatePayload;
-      toast.promise(
-        updateUser.mutateAsync({ id: userId, payload }, { onSuccess }),
-        {
-          loading: "Updating user…",
-          success: `${payload.username} updated.`,
-          error: "Could not update user.",
-        },
-      );
+      await toast
+        .promise(
+          updateUser.mutateAsync(
+            { id: userId, payload: data },
+            { onSuccess: router.back },
+          ),
+          {
+            loading: "Updating user…",
+            success: `${data.username} updated.`,
+            error: "Could not update user.",
+          },
+        )
+        .catch(() => undefined);
       return;
     }
 
-    const payload = result.data as UserCreatePayload;
-    toast.promise(createUser.mutateAsync(payload, { onSuccess }), {
-      loading: "Creating user…",
-      success: `${payload.username} created.`,
-      error: "Could not create user.",
-    });
+    if (data.password === undefined) return;
+    const payload = { ...data, password: data.password };
+    await toast
+      .promise(createUser.mutateAsync(payload, { onSuccess: router.back }), {
+        loading: "Creating user…",
+        success: `${payload.username} created.`,
+        error: "Could not create user.",
+      })
+      .catch(() => undefined);
   }
 
   if (isEditing && isUserLoading) return <UserFormSkeleton />;
@@ -210,7 +237,7 @@ export default function UserDetailPage() {
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="animate-in rounded-4xl bg-muted/50 p-1 ring-1 ring-foreground/5 fade-in slide-in-from-bottom-4 animation-duration-[800ms] fill-mode-[both] [animation-timing-function:cubic-bezier(0.22,1,0.36,1)]">
           <Card className="rounded-[calc(2rem-4px)] ring-0">
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <CardHeader>
                 <CardTitle>Detail akun</CardTitle>
                 <CardDescription>
@@ -224,7 +251,7 @@ export default function UserDetailPage() {
                     Detail akun pengguna
                   </FieldLegend>
                   <FieldGroup className="grid gap-5 md:grid-cols-2">
-                    <Field>
+                    <Field data-invalid={!!errors.username}>
                       <div className="flex items-center gap-2">
                         <IconUser
                           className="size-4 text-muted-foreground"
@@ -235,23 +262,25 @@ export default function UserDetailPage() {
                       </div>
                       <Input
                         id="username"
-                        name="username"
                         placeholder="mis. nabila.putri"
                         type="text"
-                        defaultValue={user?.username ?? ""}
                         autoComplete="username"
                         aria-invalid={!!errors.username}
+                        aria-describedby={
+                          errors.username ? "username-error" : "username-description"
+                        }
+                        {...register("username")}
                       />
                       {errors.username ?
-                        <FieldError>{errors.username[0]}</FieldError>
-                      : <FieldDescription>
+                        <FieldError id="username-error" errors={[errors.username]} />
+                      : <FieldDescription id="username-description">
                           Minimal 3 karakter; gunakan huruf, angka, titik, atau
                           garis bawah.
                         </FieldDescription>
                       }
                     </Field>
 
-                    <Field>
+                    <Field data-invalid={!!errors.email}>
                       <div className="flex items-center gap-2">
                         <IconAt
                           className="size-4 text-muted-foreground"
@@ -262,21 +291,24 @@ export default function UserDetailPage() {
                       </div>
                       <Input
                         id="email"
-                        name="email"
                         placeholder="nama@contoh.com"
                         type="email"
-                        defaultValue={user?.email ?? ""}
                         autoComplete="email"
+                        aria-invalid={!!errors.email}
+                        aria-describedby={
+                          errors.email ? "email-error" : "email-description"
+                        }
+                        {...register("email")}
                       />
                       {errors.email ?
-                        <FieldError>{errors.email[0]}</FieldError>
-                      : <FieldDescription>
+                        <FieldError id="email-error" errors={[errors.email]} />
+                      : <FieldDescription id="email-description">
                           Gunakan alamat email aktif milik pengguna.
                         </FieldDescription>
                       }
                     </Field>
 
-                    <Field>
+                    <Field data-invalid={!!errors.password}>
                       <div className="flex items-center gap-2">
                         <IconKey
                           className="size-4 text-muted-foreground"
@@ -287,7 +319,6 @@ export default function UserDetailPage() {
                       </div>
                       <Input
                         id="password"
-                        name="password"
                         placeholder={
                           isEditing ?
                             "Biarkan kosong jika tidak diubah"
@@ -296,10 +327,15 @@ export default function UserDetailPage() {
                         type="password"
                         autoComplete="new-password"
                         minLength={8}
+                        aria-invalid={!!errors.password}
+                        aria-describedby={
+                          errors.password ? "password-error" : "password-description"
+                        }
+                        {...register("password")}
                       />
                       {errors.password ?
-                        <FieldError>{errors.password[0]}</FieldError>
-                      : <FieldDescription>
+                        <FieldError id="password-error" errors={[errors.password]} />
+                      : <FieldDescription id="password-description">
                           {isEditing ?
                             "Isi hanya jika Anda ingin mengganti password."
                           : "Buat password sementara yang aman untuk pengguna."}
@@ -307,7 +343,7 @@ export default function UserDetailPage() {
                       }
                     </Field>
 
-                    <Field>
+                    <Field data-invalid={!!errors.role}>
                       <div className="flex items-center gap-2">
                         <IconShieldLock
                           className="size-4 text-muted-foreground"
@@ -316,33 +352,48 @@ export default function UserDetailPage() {
                         />
                         <FieldLabel htmlFor="role">Role</FieldLabel>
                       </div>
-                      <Select
+                      <Controller
+                        control={control}
                         name="role"
-                        items={roleItems}
-                        defaultValue={user?.role}
-                        disabled={isRoleLoading || isRoleError}
-                      >
-                        <SelectTrigger id="role" className="w-full">
-                          <SelectValue
-                            placeholder={
-                              isRoleLoading ? "Memuat role..." : "Pilih role"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Role tersedia</SelectLabel>
-                            {roleItems.map((item) => (
-                              <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                        render={({ field }) => (
+                          <Select
+                            items={roleItems}
+                            value={field.value || null}
+                            onValueChange={(value) => field.onChange(value ?? "")}
+                            disabled={isRoleLoading || isRoleError}
+                          >
+                            <SelectTrigger
+                              id="role"
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              className="w-full"
+                              aria-invalid={!!errors.role}
+                              aria-describedby={
+                                errors.role ? "role-error" : "role-description"
+                              }
+                            >
+                              <SelectValue
+                                placeholder={
+                                  isRoleLoading ? "Memuat role..." : "Pilih role"
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Role tersedia</SelectLabel>
+                                {roleItems.map((item) => (
+                                  <SelectItem key={item.value} value={item.value}>
+                                    {item.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                       {errors.role ?
-                        <FieldError>{errors.role[0]}</FieldError>
-                      : <FieldDescription>
+                        <FieldError id="role-error" errors={[errors.role]} />
+                      : <FieldDescription id="role-description">
                           {isRoleError ?
                             "Role gagal dimuat. Muat ulang halaman untuk mencoba lagi."
                           : "Role menentukan fitur dan data yang dapat diakses."

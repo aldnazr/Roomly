@@ -27,4 +27,4 @@ export const userUpdateSchema = z.object({
 
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
-export type UserFormErrors = Partial<Record<keyof UserCreateInput, string[]>>;
+export type UserFormValues = z.input<typeof userUpdateSchema>;
