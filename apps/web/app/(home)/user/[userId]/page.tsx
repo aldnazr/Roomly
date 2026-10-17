@@ -93,7 +93,6 @@ export default function UserDetailPage() {
     formState: { errors, isSubmitting },
   } = useForm<UserFormValues, unknown, UserCreateInput | UserUpdateInput>({
     resolver: zodResolver(isEditing ? userUpdateSchema : userCreateSchema),
-    defaultValues: emptyValues,
   });
 
   useEffect(() => {
@@ -108,7 +107,7 @@ export default function UserDetailPage() {
           role: user.role ?? "",
           password: "",
         }
-      : emptyValues,
+        : emptyValues,
     );
   }, [isEditing, reset, user, userId]);
 
@@ -206,7 +205,7 @@ export default function UserDetailPage() {
             <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
               {isEditing ?
                 "Perbarui identitas dan tingkat akses pengguna tanpa mengubah alur kerja tim."
-              : "Buat akun baru dan tetapkan akses yang tepat sejak hari pertama."
+                : "Buat akun baru dan tetapkan akses yang tepat sejak hari pertama."
               }
             </p>
           </div>
@@ -215,7 +214,7 @@ export default function UserDetailPage() {
             <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-card text-lg font-semibold text-primary ring-1 ring-foreground/5">
               {isEditing ?
                 initial
-              : <IconUserPlus
+                : <IconUserPlus
                   className="size-5"
                   stroke={1.5}
                   aria-hidden="true"
@@ -273,7 +272,7 @@ export default function UserDetailPage() {
                       />
                       {errors.username ?
                         <FieldError id="username-error" errors={[errors.username]} />
-                      : <FieldDescription id="username-description">
+                        : <FieldDescription id="username-description">
                           Minimal 3 karakter; gunakan huruf, angka, titik, atau
                           garis bawah.
                         </FieldDescription>
@@ -302,7 +301,7 @@ export default function UserDetailPage() {
                       />
                       {errors.email ?
                         <FieldError id="email-error" errors={[errors.email]} />
-                      : <FieldDescription id="email-description">
+                        : <FieldDescription id="email-description">
                           Gunakan alamat email aktif milik pengguna.
                         </FieldDescription>
                       }
@@ -322,7 +321,7 @@ export default function UserDetailPage() {
                         placeholder={
                           isEditing ?
                             "Biarkan kosong jika tidak diubah"
-                          : "Minimal 8 karakter"
+                            : "Minimal 8 karakter"
                         }
                         type="password"
                         autoComplete="new-password"
@@ -335,10 +334,10 @@ export default function UserDetailPage() {
                       />
                       {errors.password ?
                         <FieldError id="password-error" errors={[errors.password]} />
-                      : <FieldDescription id="password-description">
+                        : <FieldDescription id="password-description">
                           {isEditing ?
                             "Isi hanya jika Anda ingin mengganti password."
-                          : "Buat password sementara yang aman untuk pengguna."}
+                            : "Buat password sementara yang aman untuk pengguna."}
                         </FieldDescription>
                       }
                     </Field>
@@ -393,10 +392,10 @@ export default function UserDetailPage() {
                       />
                       {errors.role ?
                         <FieldError id="role-error" errors={[errors.role]} />
-                      : <FieldDescription id="role-description">
+                        : <FieldDescription id="role-description">
                           {isRoleError ?
                             "Role gagal dimuat. Muat ulang halaman untuk mencoba lagi."
-                          : "Role menentukan fitur dan data yang dapat diakses."
+                            : "Role menentukan fitur dan data yang dapat diakses."
                           }
                         </FieldDescription>
                       }
@@ -426,16 +425,16 @@ export default function UserDetailPage() {
                       className="animate-spin"
                       aria-hidden="true"
                     />
-                  : <IconDeviceFloppy
+                    : <IconDeviceFloppy
                       data-icon="inline-start"
                       aria-hidden="true"
                     />
                   }
                   {isPending ?
                     "Menyimpan..."
-                  : isEditing ?
-                    "Simpan perubahan"
-                  : "Buat pengguna"}
+                    : isEditing ?
+                      "Simpan perubahan"
+                      : "Buat pengguna"}
                 </Button>
               </CardFooter>
             </form>

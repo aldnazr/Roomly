@@ -21,12 +21,12 @@ export default function RoomPage() {
             Browse and manage room inventory, capacity, and nightly rates.
           </p>
         </div>
-        <Button render={<Link href={'/room/create'}/>}>Create Room</Button>
+        <Button size={"lg"} nativeButton={false} render={<Link href={'/room/create'} />}>Create Room</Button>
       </div>
 
       {isLoading ?
         <RoomListSkeleton />
-      : <RoomList
+        : <RoomList
           rooms={rooms}
           isError={isError}
           error={error}
